@@ -1,20 +1,17 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
+import { ComponentCatalogScreen } from '@/shared/screens/ComponentCatalogScreen';
+
+// TODO(MOV-05): reemplazar por <RootNavigator /> cuando exista navegación real.
+// Mientras tanto se monta directamente el catálogo temporal de componentes (MOV-03).
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
+    <SafeAreaProvider>
+      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+        <ComponentCatalogScreen />
+      </SafeAreaView>
       <StatusBar style="auto" />
-    </View>
+    </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
