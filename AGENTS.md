@@ -4,18 +4,20 @@ Guía para agentes de IA (Claude Code, Codex, Copilot, Cursor u otro) que trabaj
 
 ## Estado del proyecto
 
-Este repositorio hoy contiene **solo documentación de planificación** (`docs/`) — todavía no existe `src/`, `App.tsx` ni `package.json`. El scaffolding real ocurre en el ticket **MOV-02**. No asumas que un archivo o carpeta descrito aquí o en `architecture.md` ya existe: verifica con una búsqueda de archivos antes de editar o importar algo.
+El proyecto Expo está scaffoldeado (ticket **MOV-02**, completado): `App.tsx`, `package.json`, `tsconfig.json`, `babel.config.js` y la estructura completa de `src/` ya existen. La mayoría de los archivos de módulos son placeholders vacíos — el contenido real se agrega ticket por ticket (MOV-03 en adelante). No asumas que un archivo tiene contenido solo porque existe: verifica antes de editar.
 
 ## Comandos
 
-Una vez scaffoldeado el proyecto:
-
 ```bash
 npm install
-npx expo start
+npx expo start        # servidor de desarrollo
+npm run lint           # ESLint (eslint-config-expo)
+npm run format          # Prettier — escribe cambios
+npm run format:check    # Prettier — solo verifica
+npx tsc --noEmit        # chequeo de tipos (usa el alias @/ vía tsconfig paths)
 ```
 
-No hay lint/test/build configurados todavía (MOV-02 introduce ESLint/Prettier). Si los agregas, documenta aquí el comando exacto.
+`npm run lint` y `npx tsc --noEmit` deben correr limpios antes de dar por terminado cualquier cambio.
 
 ## Reglas no negociables
 
