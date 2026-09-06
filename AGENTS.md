@@ -4,7 +4,12 @@ Guía para agentes de IA (Claude Code, Codex, Copilot, Cursor u otro) que trabaj
 
 ## Estado del proyecto
 
-El proyecto Expo está scaffoldeado (ticket **MOV-02**, completado): `App.tsx`, `package.json`, `tsconfig.json`, `babel.config.js` y la estructura completa de `src/` ya existen. La mayoría de los archivos de módulos son placeholders vacíos — el contenido real se agrega ticket por ticket (MOV-03 en adelante). No asumas que un archivo tiene contenido solo porque existe: verifica antes de editar.
+- **MOV-02** (completado, en `develop`): scaffold de Expo — `App.tsx`, `package.json`, `tsconfig.json`, `babel.config.js` y la estructura completa de `src/`.
+- **MOV-03** (completado, en `develop`): sistema de diseño — `shared/theme/{colors,typography,spacing}.ts` y los 7 componentes de `shared/components/` (`Button`, `Card`, `Input`, `Badge`, `EmptyState`, `LoadingState`, `ErrorState`). `App.tsx` monta temporalmente `shared/screens/ComponentCatalogScreen.tsx` en lugar de un navegador real — eso lo reemplaza MOV-06.
+- **MOV-04** (completado, en `develop`): contratos de dominio — `shared/constants/{roles,permissions,statuses}.ts` y el DTO/Model/Mapper de las 9 entidades (`user`, `guest`, `room`, `booking`, `service-request`, `order`, `product`, `amenity`, `notification`). `data/db.ts` ya tiene datos realistas y coherentes (no placeholders): 6 usuarios, 15 habitaciones, 10 huéspedes con reserva, 20 solicitudes, 20 pedidos, 25 productos, 8 amenidades, 10 notificaciones, en quetzales guatemaltecos (GTQ). `shared/theme/colors.ts` deriva sus tipos de estado de `statuses.ts`, no al revés.
+- **MOV-05** (completado, PR abierto hacia `develop`): capa de servicios — `shared/services/{delay,http-client,simulate-error}.ts` y `*.service.ts` en `auth`, `housekeeping`, `room-service` (`order` + `menu`), `requests` y `tasks/services/task-transition.service.ts` (valida transiciones para los tres, reutilizado por los demás). Todo servicio pasa por `delay()` (300–600 ms) y puede fallar a demanda con `forceNextFailure()` de `simulate-error.ts`. `http-client.ts` existe pero ningún servicio lo usa todavía — siguen leyendo `data/db.ts` directamente y mutando sus arrays en memoria para simular persistencia.
+- El resto de módulos (`screens` de dominio, `navigation`, `context`) siguen siendo placeholders vacíos — llegan en MOV-06 en adelante. No asumas que un archivo tiene contenido solo porque existe: verifica antes de editar.
+- Mantén esta sección al día cada vez que termines un ticket de Fase 0/1/2 — así el siguiente agente no tiene que reconstruir el estado leyendo commits.
 
 ## Comandos
 
@@ -33,16 +38,18 @@ npx tsc --noEmit        # chequeo de tipos (usa el alias @/ vía tsconfig paths)
 - Cada ticket `MOV-XX` en `docs/Tickets/` tiene tareas y criterios de aceptación explícitos. Antes de implementar algo que corresponda a un ticket, lee el ticket completo — no solo el título.
 - Respeta las dependencias entre tickets (`Depende de:` en cada archivo). No implementes MOV-08 sin que MOV-07 esté resuelto, por ejemplo.
 - Fase 1 (personal: limpieza, room service, conserjería) se construye antes que Fase 2 (huésped) — es una decisión deliberada, no un accidente de orden. Ver `architecture.md` sección 1.
-- Si una tarea toca algo listado en "Pendientes de definición" (sección 9 de `docs/plan-app-movil.md` — paleta/tipografía, moneda/formato de fecha, idioma de interfaz, contrato de datos con la web), pregunta antes de decidir por tu cuenta; son decisiones que el equipo aún no cerró.
+- Si una tarea toca algo listado en "Pendientes de definición" (sección 9 de `docs/plan-app-movil.md`), pregunta antes de decidir por tu cuenta; son decisiones que el equipo aún no cerró. Paleta/tipografía (MOV-03) y moneda/formato de fecha (MOV-04, quetzales guatemaltecos) ya se resolvieron — quedan pendientes idioma de interfaz y el contrato de datos con la web privada.
 
 ## Datos simulados
 
-Todo dato viene de `src/data/db.ts` (arrays con forma de DTO) hasta que exista backend. Al crear datos de prueba:
-- Deben ser realistas (nombres, horarios, precios en moneda local), no relleno tipo "Test 1".
-- Deben ser coherentes entre sí (un pedido debe apuntar a una habitación y un huésped que existan en `db.ts`).
-- Debe existir al menos un registro en cada estado posible de cada máquina de estados.
+Todo dato viene de `src/data/db.ts` (arrays con forma de DTO, poblado desde MOV-04) hasta que exista backend. Al agregar o modificar datos de prueba:
+- Deben ser realistas (nombres, horarios, precios en quetzales guatemaltecos — GTQ), no relleno tipo "Test 1".
+- Deben ser coherentes entre sí (un pedido o solicitud debe apuntar a una habitación y un huésped que existan en `db.ts`; los productos referenciados en un pedido también deben existir).
+- Debe existir al menos un registro en cada estado posible de cada máquina de estados (`shared/constants/statuses.ts`).
+- No confíes solo en `tsc`/`eslint` para esto: son estructurales, no verifican referencias cruzadas ni sumas (subtotal+tax=total, noches×tarifa=total). Antes de dar por terminado un cambio a `db.ts`, corre un script rápido (con `npx tsx`, sin agregar dependencias) que valide ids únicos, referencias existentes y esa aritmética.
 
 ## Al terminar un cambio
 
 - Si el cambio corresponde a un ticket, marca sus checkboxes en `docs/Tickets/MOV-XX.md` solo cuando el criterio de aceptación correspondiente esté realmente cumplido.
 - Si el cambio altera una decisión de arquitectura documentada en `architecture.md` o `docs/plan-app-movil.md`, actualiza el documento en el mismo cambio — no dejes que el documento quede desactualizado respecto al código.
+- Al completar un ticket de Fase 0/1/2, actualiza también la sección "Estado del proyecto" de este archivo (qué MOV-XX está completo, qué existe ya y deja de ser placeholder, qué pendiente de definición se resolvió).
