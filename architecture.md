@@ -2,7 +2,7 @@
 
 Este documento explica **cómo** está construida la app y **por qué**. Para el plan de tickets y el detalle historia por historia, ver `docs/plan-app-movil.md` y `docs/Tickets/`.
 
-> **Estado:** este documento describe la arquitectura objetivo. El scaffolding real del proyecto (MOV-02) puede no estar completo todavía — verificar contra `src/` antes de asumir que un archivo existe.
+> **Estado:** el scaffolding (MOV-02) está completo — la estructura de `src/` descrita abajo ya existe. La mayoría de sus archivos son placeholders vacíos hasta que los tickets MOV-03 en adelante les agreguen contenido.
 
 ---
 

@@ -54,4 +54,29 @@ npx expo start
 
 Escanea el código QR con Expo Go, o presiona `a` para abrir el emulador Android.
 
+## Comandos
+
+```bash
+npx expo start      # servidor de desarrollo
+npm run lint         # ESLint
+npm run format       # Prettier — escribe cambios
+npm run format:check # Prettier — solo verifica
+npx tsc --noEmit     # chequeo de tipos
+```
+
 ## Estructura
+
+```
+src/
+├── navigation/     # RootNavigator y navegadores por tipo de sesión (Auth | Staff | Guest)
+├── modules/        # un módulo por dominio: dtos/ → models/ → mappers/ → services/ → screens/
+├── shared/         # componentes, tema, constantes y utilidades reutilizables entre módulos
+├── data/           # "BD" simulada (db.ts) — no hay backend en esta etapa
+└── hooks/          # hooks compartidos entre módulos
+```
+
+El alias `@/` apunta a `src/` (ej. `import { colors } from '@/shared/theme/colors'`).
+
+Arquitectura completa (capas DTO → Mapper → Model → Service, convenciones de nombres,
+máquinas de estado): ver [`architecture.md`](./architecture.md). Guía para agentes de IA
+que trabajen en este repo: ver [`AGENTS.md`](./AGENTS.md).
