@@ -33,12 +33,12 @@ Un huésped **nunca** instancia una pantalla de personal, y viceversa — no es 
 
 Cada dominio de datos (pedidos, habitaciones, reservas, etc.) se modela en cuatro capas con responsabilidades estrictas:
 
-| Capa | Responsabilidad |
-|---|---|
-| **DTO** | La forma **cruda** del dato — hoy tal como vive en `src/data/db.ts`, mañana tal como llegará de la API real. Puede tener `snake_case`, campos redundantes, fechas como texto. |
-| **Mapper** | Convierte DTO → Model. Es el **único** punto del código que conoce ambas formas. |
-| **Model** | La forma de **dominio** que consume la UI: limpia, tipada, con `Date` reales y campos calculados. |
-| **Service** | La única puerta de entrada a los datos. Siempre `async`, siempre devuelve Models, nunca DTOs. Simula latencia de red. |
+| Capa        | Responsabilidad                                                                                                                                                               |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **DTO**     | La forma **cruda** del dato — hoy tal como vive en `src/data/db.ts`, mañana tal como llegará de la API real. Puede tener `snake_case`, campos redundantes, fechas como texto. |
+| **Mapper**  | Convierte DTO → Model. Es el **único** punto del código que conoce ambas formas.                                                                                              |
+| **Model**   | La forma de **dominio** que consume la UI: limpia, tipada, con `Date` reales y campos calculados.                                                                             |
+| **Service** | La única puerta de entrada a los datos. Siempre `async`, siempre devuelve Models, nunca DTOs. Simula latencia de red.                                                         |
 
 ### Ejemplo real
 
@@ -50,10 +50,8 @@ import { delay } from '@/shared/services/delay';
 import type { OrderModel } from '../models/order.model';
 
 export const getPendingOrders = async (): Promise<OrderModel[]> => {
-  await delay(400);                          // simula latencia de red
-  return ordersDB
-    .filter(order => order.status === 'pending')
-    .map(mapOrderDTOToModel);
+  await delay(400); // simula latencia de red
+  return ordersDB.filter((order) => order.status === 'pending').map(mapOrderDTOToModel);
 };
 ```
 
@@ -156,29 +154,30 @@ Cada módulo de dominio sigue internamente el patrón `dtos/ → models/ → map
 
 **Todo el código en inglés.** Nombres de archivos, carpetas, variables, funciones, tipos, propiedades de objetos y claves de datos. El español se reserva para textos visibles al usuario final, comentarios explicativos y documentación.
 
-| Elemento | Convención | Ejemplo |
-|---|---|---|
-| Carpetas de módulo | kebab-case | `room-service/` |
-| Componentes y pantallas | PascalCase | `OrderDetailScreen.tsx` |
+| Elemento                          | Convención            | Ejemplo                            |
+| --------------------------------- | --------------------- | ---------------------------------- |
+| Carpetas de módulo                | kebab-case            | `room-service/`                    |
+| Componentes y pantallas           | PascalCase            | `OrderDetailScreen.tsx`            |
 | Servicios, modelos, DTOs, mappers | kebab-case con sufijo | `order.service.ts`, `order.dto.ts` |
-| Variables y funciones | camelCase | `getPendingOrders` |
-| Tipos e interfaces | PascalCase | `OrderModel`, `OrderDTO` |
-| Constantes | SCREAMING_SNAKE_CASE | `ORDER_STATUS_FLOW` |
+| Variables y funciones             | camelCase             | `getPendingOrders`                 |
+| Tipos e interfaces                | PascalCase            | `OrderModel`, `OrderDTO`           |
+| Constantes                        | SCREAMING_SNAKE_CASE  | `ORDER_STATUS_FLOW`                |
 
 ---
 
 ## 7. Decisiones técnicas
 
-| Decisión | Elección | Motivo |
-|---|---|---|
-| Framework | React Native con **Expo (managed)** | Sin módulos nativos; evita configuración de Android Studio |
-| Lenguaje | **TypeScript** | Con datos dummy es lo único que detecta desajustes entre datos y pantallas |
-| Navegación | **React Navigation** | Navegador raíz condicional por tipo de sesión |
-| Estado global | **Context + useReducer** | Redux es desproporcionado para este alcance |
-| Datos | **100 % dummy** en `src/data/db.ts` | No hay backend en esta etapa |
-| Acceso a datos | Exclusivamente por servicios de módulo | Ver regla de oro (sección 2) |
-| Repositorio | **Uno solo**, una app | Ver sección 1 |
+| Decisión               | Elección                                                                           | Motivo                                                                                                                                                                                                                                                                            |
+| ---------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework              | React Native con **Expo (managed)**                                                | Sin módulos nativos; evita configuración de Android Studio                                                                                                                                                                                                                        |
+| Lenguaje               | **TypeScript**                                                                     | Con datos dummy es lo único que detecta desajustes entre datos y pantallas                                                                                                                                                                                                        |
+| Navegación             | **React Navigation**                                                               | Navegador raíz condicional por tipo de sesión                                                                                                                                                                                                                                     |
+| Estado global          | **Context + useReducer**                                                           | Redux es desproporcionado para este alcance                                                                                                                                                                                                                                       |
+| Datos                  | **100 % dummy** en `src/data/db.ts`                                                | No hay backend en esta etapa                                                                                                                                                                                                                                                      |
+| Acceso a datos         | Exclusivamente por servicios de módulo                                             | Ver regla de oro (sección 2)                                                                                                                                                                                                                                                      |
+| Repositorio            | **Uno solo**, una app                                                              | Ver sección 1                                                                                                                                                                                                                                                                     |
+| Persistencia de sesión | `@react-native-async-storage/async-storage` detrás de `shared/services/storage.ts` | Datos no sensibles (qué sesión estaba activa); ningún consumidor importa AsyncStorage directamente, igual que `http-client.ts` con `fetch`. **Revisar cuando existan tokens de sesión reales contra un backend** — ahí probablemente corresponda `expo-secure-store` en su lugar. |
 
 ---
 
-*Este documento se actualiza en los tickets MOV-02, MOV-13 y MOV-22 conforme la arquitectura pasa de plan a código construido. Fuente original de estas decisiones: `docs/plan-app-movil.md`.*
+_Este documento se actualiza en los tickets MOV-02, MOV-13 y MOV-22 conforme la arquitectura pasa de plan a código construido. Fuente original de estas decisiones: `docs/plan-app-movil.md`._
