@@ -1,3 +1,5 @@
+import type { OrderStatus, RoomStatus, ServiceRequestStatus } from '@/shared/constants/statuses';
+
 /**
  * Paleta de colores — PMS Hoteles Boutique.
  * Fuente: docs/paletaColores.md. No agregar valores hex fuera de este archivo.
@@ -40,9 +42,11 @@ export interface StatusColorToken {
 
 /**
  * Color por estado para cada máquina de estados (architecture.md sección 4).
- * `statuses.ts` (MOV-04) es dueño de los nombres/transiciones; este archivo solo
- * asigna el color que corresponde a cada nombre de estado, para que sea el mismo
- * en cualquier pantalla que lo muestre.
+ * `shared/constants/statuses.ts` es dueño de los nombres/transiciones; este
+ * archivo solo asigna el color que corresponde a cada nombre de estado, para
+ * que sea el mismo en cualquier pantalla que lo muestre. El `satisfies` de
+ * abajo obliga a que exista un color por cada estado real y ningún color
+ * sobrante.
  */
 export const statusColors = {
   order: {
@@ -69,8 +73,8 @@ export const statusColors = {
     inspected: { background: colors.brand[300], text: colors.brand[900] },
     blocked: { background: colors.state.muted, text: colors.white },
   },
-} as const satisfies Record<string, Record<string, StatusColorToken>>;
-
-export type OrderStatus = keyof typeof statusColors.order;
-export type ServiceRequestStatus = keyof typeof statusColors.serviceRequest;
-export type RoomStatus = keyof typeof statusColors.room;
+} as const satisfies {
+  order: Record<OrderStatus, StatusColorToken>;
+  serviceRequest: Record<ServiceRequestStatus, StatusColorToken>;
+  room: Record<RoomStatus, StatusColorToken>;
+};
