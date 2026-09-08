@@ -4,14 +4,14 @@ Ticket clave del proyecto. Los tres roles de personal comparten el mismo patrón
 
 ## Tareas
 
-- [ ] `models/task.model.ts` — abstracción común de solicitud, pedido y tarea
-- [ ] `TaskCard` configurable por tipo de entidad
-- [ ] `TaskFilters` — filtro por estado y búsqueda
-- [ ] `StatusBadge`
-- [ ] `TaskListScreen` que recibe el servicio y la configuración por parámetro
-- [ ] Estados de carga, vacío y error
-- [ ] Recarga por gesto de arrastre (pull to refresh)
-- [ ] Ordenamiento por antigüedad
+- [x] `models/task.model.ts` — abstracción común de solicitud, pedido y tarea
+- [x] `TaskCard` configurable por tipo de entidad
+- [x] `TaskFilters` — filtro por estado y búsqueda
+- [x] `StatusBadge`
+- [x] `TaskListScreen` que recibe el servicio y la configuración por parámetro
+- [x] Estados de carga, vacío y error
+- [x] Recarga por gesto de arrastre (pull to refresh)
+- [x] Ordenamiento por antigüedad
 
 ## Criterios de aceptación
 

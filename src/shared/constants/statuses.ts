@@ -38,6 +38,18 @@ export const ORDER_STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   cancelled: [],
 };
 
+/** Texto visible al personal para cada estado de `Order` (ej. bandeja de tasks, MOV-07). */
+export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  pending: 'Pendiente',
+  accepted: 'Aceptado',
+  preparing: 'Preparando',
+  ready: 'Listo',
+  onTheWay: 'En camino',
+  delivered: 'Entregado',
+  rejected: 'Rechazado',
+  cancelled: 'Cancelado',
+};
+
 // ---------------------------------------------------------------------------
 // ServiceRequest (solicitudes de limpieza, artículos y conserjería)
 // ---------------------------------------------------------------------------
@@ -67,6 +79,15 @@ export const SERVICE_REQUEST_STATUS_TRANSITIONS: Record<
   inProgress: ['completed'],
   completed: [],
   rejected: [],
+};
+
+/** Texto visible al personal para cada estado de `ServiceRequest` (ej. bandeja de tasks, MOV-07). */
+export const SERVICE_REQUEST_STATUS_LABELS: Record<ServiceRequestStatus, string> = {
+  pending: 'Pendiente',
+  accepted: 'Aceptada',
+  inProgress: 'En progreso',
+  completed: 'Completada',
+  rejected: 'Rechazada',
 };
 
 // ---------------------------------------------------------------------------
