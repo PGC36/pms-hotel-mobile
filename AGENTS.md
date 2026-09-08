@@ -53,6 +53,6 @@ Todo dato viene de `src/data/db.ts` (arrays con forma de DTO, poblado desde MOV-
 
 ## Al terminar un cambio
 
-- Si el cambio corresponde a un ticket, marca sus checkboxes en `docs/Tickets/MOV-XX.md` solo cuando el criterio de aceptación correspondiente esté realmente cumplido.
+- Si el cambio corresponde a un ticket, marca sus checkboxes en `PGC36/pms-hotel-mobile` solo cuando el criterio de aceptación correspondiente esté realmente cumplido.
 - Si el cambio altera una decisión de arquitectura documentada en `architecture.md` o `docs/plan-app-movil.md`, actualiza el documento en el mismo cambio — no dejes que el documento quede desactualizado respecto al código.
 - Al completar un ticket de Fase 0/1/2, actualiza también la sección "Estado del proyecto" de este archivo (qué MOV-XX está completo, qué existe ya y deja de ser placeholder, qué pendiente de definición se resolvió).
