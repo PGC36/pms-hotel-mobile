@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
+import { useCallback, useMemo, useReducer, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { EmptyState, ErrorState, LoadingState } from '@/shared/components';
 import { colors, spacing, typography } from '@/shared/theme';
@@ -96,9 +97,15 @@ export function TaskListScreen({ fetchTasks, config = {}, onTaskPress }: TaskLis
     }
   }, [fetchTasks]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  // `useFocusEffect` (no un `useEffect` de montaje) para que la bandeja se
+  // actualice también al volver de `TaskDetailScreen` tras un cambio de
+  // estado (MOV-08 criterio de aceptación 3), no solo la primera vez.
+  useFocusEffect(
+    useCallback(() => {
+      dispatch({ type: 'FETCH_START' });
+      load();
+    }, [load]),
+  );
 
   const retry = useCallback(() => {
     dispatch({ type: 'FETCH_START' });

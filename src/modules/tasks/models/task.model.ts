@@ -1,6 +1,8 @@
 import {
   ORDER_STATUS_LABELS,
+  ORDER_STATUS_TRANSITIONS,
   SERVICE_REQUEST_STATUS_LABELS,
+  SERVICE_REQUEST_STATUS_TRANSITIONS,
   type OrderStatus,
   type ServiceRequestStatus,
 } from '@/shared/constants/statuses';
@@ -28,6 +30,8 @@ export interface TaskModel {
   roomLabel?: string;
   /** Texto secundario libre para contexto extra (ej. "3 productos", "Categoría: Conserjería"). */
   meta?: string;
+  /** Observaciones de atención existentes, editables desde `TaskDetailScreen` (MOV-08). */
+  notes?: string;
   status: TaskStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -43,4 +47,20 @@ export function getStatusColor(entityType: TaskEntityType, status: TaskStatus): 
   return entityType === 'order'
     ? statusColors.order[status as OrderStatus]
     : statusColors.serviceRequest[status as ServiceRequestStatus];
+}
+
+/**
+ * Transiciones válidas desde `status` (MOV-08) — misma fuente de verdad que
+ * `task-transition.service.ts`, para que `StatusStepper` solo muestre
+ * acciones válidas (AGENTS.md regla 3: nunca condicionales de estado sueltos).
+ */
+export function getValidNextStatuses(entityType: TaskEntityType, status: TaskStatus): TaskStatus[] {
+  return entityType === 'order'
+    ? ORDER_STATUS_TRANSITIONS[status as OrderStatus]
+    : SERVICE_REQUEST_STATUS_TRANSITIONS[status as ServiceRequestStatus];
+}
+
+/** Un estado es terminal cuando no tiene transiciones salientes — llegar a él es irreversible. */
+export function isTerminalStatus(entityType: TaskEntityType, status: TaskStatus): boolean {
+  return getValidNextStatuses(entityType, status).length === 0;
 }
