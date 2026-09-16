@@ -14,7 +14,7 @@ divergencia de nombre o tipo, se cambia móvil, nunca la web.
 | 2.2 `guest` | ✅ hecho | `feat(guest): reconciliar first_name/last_name y document_type con el contrato` | `tsc`/`eslint` limpios. |
 | 2.2 `booking` | ✅ hecho | `feat(booking): reconciliar campos, centavos y las 6 transiciones con el contrato` | Tabla de montos confirmada por el usuario antes del commit. `tsc`/`eslint` limpios. |
 | 2.2 `product` | ✅ hecho | `feat(product): reconciliar sku, centavos y categoria con el contrato` | Tabla de montos confirmada. `tsc`/`eslint` limpios. |
-| 2.2 `amenity` | ⏳ pendiente | | |
+| 2.2 `amenity` | ✅ hecho | `feat(amenity): reconciliar horario opcional y categoria con el contrato` | `tsc`/`eslint` limpios. |
 | 2.2 `user` | ⏳ pendiente | | No tocar `password`/login (MOV-06). |
 | 2.2 `order` | ⏳ pendiente | | |
 | 2.2 `service-request` | ⏳ pendiente | | |
@@ -159,6 +159,26 @@ mapper.ts` + `room-type`/`room-feature` (entidades nuevas) + migración de
 - `is_available` → `active` (mismo valor). `image_url`/
   `preparation_time_minutes` se conservan como campos propios de móvil.
 
+## Decisiones tomadas en el commit de `amenity`
+
+- **Categoría:** taxonomía propia (`pool/gym/spa/restaurant/bar/business/
+  kids`) → la del contrato (`room/hotel/service`). Instalaciones de uso
+  libre (piscinas, gimnasio, restaurante, bar, centro de negocios) →
+  `hotel`; servicios con personal asignado (spa, club infantil) →
+  `service`. Ninguna amenidad del dataset es específica de una habitación
+  (`room` no se usa todavía). No es una regla mecánica — es una lectura de
+  cada amenidad, documentada aquí por si el equipo quiere revisar algún
+  caso puntual (ej. si el spa debería ser `hotel` en vez de `service`).
+- **`opening_time`/`closing_time` → `opens_at?`/`closes_at?`:** en el
+  dataset actual las 8 amenidades tienen horario, así que quedan
+  poblados; no había ninguna amenidad de servicio continuo (24h) para
+  ejercitar el caso "sin horario". `scheduleLabel` (Model, calculado) ya
+  soporta el caso ausente ("Abierto las 24 horas") por si se agrega una a
+  futuro. No se implementó `isAmenityOpenAt()` — es de MOV-16, fuera del
+  alcance de esta reconciliación (diagnóstico sección 7).
+- `is_active` → `active`. `image_url` se conserva como campo propio de
+  móvil.
+
 ## Huecos y decisiones pendientes (no resueltos aquí, ver sección 16 del diagnóstico)
 
 - División de `booking.guests_count` en `adults`/`children` — sin fuente de verdad. Se resuelve en 2.3 con `adults = guests_count`, `children = 0` para la mayoría, dejando 2-3 reservas con acompañantes menores para variedad de datos (instrucción explícita del usuario).
@@ -178,3 +198,4 @@ mapper.ts` + `room-type`/`room-feature` (entidades nuevas) + migración de
 | `feat(guest): reconciliar first_name/last_name y document_type con el contrato` | 2.2 (`guest`) | `full_name` dividido en `first_name`/`last_name`; `document_type: 'dpi'` → `'national_id'` (anotado abajo, es el término local guatemalteco); `email`/`phone`/`nationality`/`document_*` ahora opcionales. `tsc`/`eslint` limpios. |
 | `feat(booking): reconciliar campos, centavos y las 6 transiciones con el contrato` | 2.1 (máquina `Booking` en `statuses.ts`) + 2.2 (`booking`) | Ver tabla de montos y decisiones arriba. `tsc`/`eslint` limpios. |
 | `feat(product): reconciliar sku, centavos y categoria con el contrato` | 2.2 (`product`) | Ver tabla de montos y hallazgos arriba (bloqueo de MOV-17). `tsc`/`eslint` limpios. |
+| `feat(amenity): reconciliar horario opcional y categoria con el contrato` | 2.2 (`amenity`) | Ver decisiones arriba. `tsc`/`eslint` limpios. |
