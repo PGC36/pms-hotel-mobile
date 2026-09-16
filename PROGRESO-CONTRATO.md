@@ -15,7 +15,7 @@ divergencia de nombre o tipo, se cambia móvil, nunca la web.
 | 2.2 `booking` | ✅ hecho | `feat(booking): reconciliar campos, centavos y las 6 transiciones con el contrato` | Tabla de montos confirmada por el usuario antes del commit. `tsc`/`eslint` limpios. |
 | 2.2 `product` | ✅ hecho | `feat(product): reconciliar sku, centavos y categoria con el contrato` | Tabla de montos confirmada. `tsc`/`eslint` limpios. |
 | 2.2 `amenity` | ✅ hecho | `feat(amenity): reconciliar horario opcional y categoria con el contrato` | `tsc`/`eslint` limpios. |
-| 2.2 `user` | ⏳ pendiente | | No tocar `password`/login (MOV-06). |
+| 2.2 `user` | ⏸️ deliberadamente sin reconciliar | | Ver nota abajo — está fusionado con el login de MOV-06. |
 | 2.2 `order` | ⏳ pendiente | | |
 | 2.2 `service-request` | ⏳ pendiente | | |
 | 2.3 `db.ts` (migración de datos) | ⏳ pendiente | | Tabla de montos antes/después completa aquí. |
@@ -178,6 +178,31 @@ mapper.ts` + `room-type`/`room-feature` (entidades nuevas) + migración de
   alcance de esta reconciliación (diagnóstico sección 7).
 - `is_active` → `active`. `image_url` se conserva como campo propio de
   móvil.
+
+## Por qué `user` no se reconcilia en esta rama
+
+`src/modules/auth/dtos/user.dto.ts` **es** el mecanismo de login de MOV-06,
+no una copia separada del `user` (puesto) de solo lectura que describe el
+contrato: trae `password`, lo consume `AuthContext`, y su `role` (`StaffRole`,
+3 valores) alimenta el filtrado de tabs de `StaffNavigator` y
+`shared/constants/permissions.ts`. No hay forma de:
+
+- dividir `full_name` en `first_name`/`last_name`,
+- ampliar `role` a los 6 valores del contrato (`admin`/`guest`/`reception`/
+  `housekeeping`/`concierge`/`room_service`),
+- renombrar `is_active` → `status: 'active'|'inactive'`,
+
+...sin tocar el flujo de autenticación (`AuthContext`, `StaffNavigator`,
+`permissions.ts`) — exactamente lo que la Fase 4 del plan pide no tocar
+("Autenticación del personal en móvil... no lo toques"). Reconciliar la
+*forma* de este archivo no es separable de tocar el *mecanismo*, a
+diferencia de las demás entidades.
+
+**Se deja sin reconciliar, documentado aquí en vez de forzado.** Si en el
+futuro se necesita el `user` de solo lectura del contrato (ej. para mostrar
+"personal asignado" en una tarea — que hoy tampoco existe como campo, ver
+diagnóstico sección 16), es una entidad nueva y separada de
+`auth/dtos/user.dto.ts`, no una modificación de este archivo.
 
 ## Huecos y decisiones pendientes (no resueltos aquí, ver sección 16 del diagnóstico)
 
