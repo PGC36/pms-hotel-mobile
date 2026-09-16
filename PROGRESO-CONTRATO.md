@@ -12,7 +12,7 @@ divergencia de nombre o tipo, se cambia móvil, nunca la web.
 | Fase 1 — Diagnóstico | ✅ hecho | `docs: diagnostico de divergencias con el contrato oficial` | Ver `docs/DIAGNOSTICO-CONTRATO.md`. Confirmado por el usuario. |
 | 2.1 `statuses.ts` (máquinas de estado, solo `room`) + 2.2 `room`/`room-type`/`room-feature` | ✅ hecho | (siguiente commit) | Combinados en un solo commit porque `RoomDTO.status` no puede compilar contra `db.ts` sin el split ya hecho — ver nota de alcance abajo. `tsc`/`eslint` limpios. |
 | 2.2 `guest` | ✅ hecho | `feat(guest): reconciliar first_name/last_name y document_type con el contrato` | `tsc`/`eslint` limpios. |
-| 2.2 `booking` | ⏳ pendiente | | |
+| 2.2 `booking` | ✅ hecho | `feat(booking): reconciliar campos, centavos y las 6 transiciones con el contrato` | Tabla de montos confirmada por el usuario antes del commit. `tsc`/`eslint` limpios. |
 | 2.2 `product` | ⏳ pendiente | | |
 | 2.2 `amenity` | ⏳ pendiente | | |
 | 2.2 `user` | ⏳ pendiente | | No tocar `password`/login (MOV-06). |
@@ -90,6 +90,41 @@ mapper.ts` + `room-type`/`room-feature` (entidades nuevas) + migración de
   específico para Guatemala, este mapeo debería revisarse. No se resuelve
   unilateralmente desde móvil (regla de Fase 4).
 
+## Decisiones tomadas en el commit de `booking`
+
+- **Montos:** `total_price` (quetzales decimales) → `total_amount_cents`
+  (centavos, ×100) en las 10 reservas originales. Tabla completa mostrada y
+  confirmada por el usuario antes del commit (ver historial del chat).
+- **`guests_count` dividido en `adults`/`children`:** `adults = guests_count`,
+  `children = 0` en la mayoría; `booking-04` y `booking-07` quedan con 1
+  acompañante menor cada una (instrucción explícita: dejar variedad de
+  datos para probar la pantalla de estadía).
+- **Cobertura de estados:** el dataset original no tenía ningún registro en
+  `pending`, `noShow` ni `cancelled` (los únicos estados usados eran
+  `checkedIn` ×8, `confirmed` ×1, `checkedOut` ×1). Se agregaron
+  `booking-11` (`pending`, sin `room_id` — ejercita el campo opcional de
+  "reserva sin habitación asignada aún"), `booking-12` (`noShow`) y
+  `booking-13` (`cancelled`) para que las 6 transiciones de
+  `BOOKING_STATUS_TRANSITIONS` tengan al menos un dato real (regla de
+  AGENTS.md).
+- **Formato de `confirmation_code`/`guest_link_code`:** se alinearon con el
+  formato **sembrado** del dataset de la web (`AUR-26001`, `LNK-26001`),
+  no con el que genera `bookingService.createBooking()` en vivo
+  (`PMS-0011`/`LNK-0011`) — instrucción explícita del usuario, para que los
+  datos de referencia de ambos repos sean comparables a simple vista.
+  **Queda anotado, no resuelto:** la propia web tiene una inconsistencia
+  interna entre su dataset sembrado y lo que su generador produce en vivo
+  (docs/HANDOFF-MOVIL.md sección 8, "Inconsistencia menor #2"); es algo a
+  coordinar con el equipo web, no algo que móvil pueda corregir del lado
+  del generador de la web.
+- **`room_type_id` se derivó del `room_id`** de cada reserva contra
+  `roomTypesDB` (join manual al armar los datos, ya que no hay servicio de
+  reservas real todavía).
+- **`rate_id` se deja sin poblar** (campo opcional del contrato) — `rate`
+  es una entidad exclusiva de la web, fuera de alcance de móvil.
+- Se corrigió `new Date()` directo sobre fecha civil en el mapper, usando
+  la nueva utilidad `toDomainCalendarDate` (`shared/utils/date.ts`).
+
 ## Huecos y decisiones pendientes (no resueltos aquí, ver sección 16 del diagnóstico)
 
 - División de `booking.guests_count` en `adults`/`children` — sin fuente de verdad. Se resuelve en 2.3 con `adults = guests_count`, `children = 0` para la mayoría, dejando 2-3 reservas con acompañantes menores para variedad de datos (instrucción explícita del usuario).
@@ -107,3 +142,4 @@ mapper.ts` + `room-type`/`room-feature` (entidades nuevas) + migración de
 | `docs: diagnostico de divergencias con el contrato oficial` | Fase 1 | Diagnóstico completo, sin cambios de código. |
 | `feat(room): separar ocupacion y limpieza, crear room-type y room-feature` | 2.1 + 2.2 (`room`, `room-type`, `room-feature`) | `tsc`/`eslint` limpios. Ver decisiones arriba. |
 | `feat(guest): reconciliar first_name/last_name y document_type con el contrato` | 2.2 (`guest`) | `full_name` dividido en `first_name`/`last_name`; `document_type: 'dpi'` → `'national_id'` (anotado abajo, es el término local guatemalteco); `email`/`phone`/`nationality`/`document_*` ahora opcionales. `tsc`/`eslint` limpios. |
+| `feat(booking): reconciliar campos, centavos y las 6 transiciones con el contrato` | 2.1 (máquina `Booking` en `statuses.ts`) + 2.2 (`booking`) | Ver tabla de montos y decisiones arriba. `tsc`/`eslint` limpios. |

@@ -1,17 +1,24 @@
-import type { BookingStatus } from '../dtos/booking.dto';
+import type { BookingStatus } from '@/shared/constants/statuses';
+import type { Currency } from '@/shared/utils/formatters';
 
 export interface BookingModel {
   id: string;
+  confirmationCode: string;
+  guestLinkCode: string;
   guestId: string;
-  roomId: string;
-  checkInDate: Date;
-  checkOutDate: Date;
-  guestsCount: number;
+  roomId?: string;
+  roomTypeId: string;
+  rateId?: string;
+  checkIn: Date;
+  checkOut: Date;
   status: BookingStatus;
-  linkingCode: string;
-  totalPrice: number;
-  notes: string | null;
+  adults: number;
+  children: number;
+  totalAmountCents: number;
+  currency: Currency;
+  notes?: string;
   /** Calculado a partir de check-in/check-out; no viene del DTO. */
   nights: number;
   createdAt: Date;
+  updatedAt: Date;
 }

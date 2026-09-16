@@ -1,23 +1,32 @@
-export const BOOKING_STATUSES = ['confirmed', 'checkedIn', 'checkedOut', 'cancelled'] as const;
+import type { BookingStatus } from '@/shared/constants/statuses';
+import type { Currency } from '@/shared/utils/formatters';
 
-export type BookingStatus = (typeof BOOKING_STATUSES)[number];
+export type { BookingStatus };
 
 /**
  * Forma cruda de una reserva, tal como la expondría `GET /bookings/:id`.
- * No es una de las tres máquinas de estado de `shared/constants/statuses.ts`:
- * su ciclo de vida lo gestiona la web privada (check-in/check-out); aquí solo
- * se consume para saber si el código de vinculación (HU-11) sigue siendo válido.
+ * Contrato oficial: docs/HANDOFF-MOVIL.md sección 3.5. Su ciclo de vida lo
+ * gestiona la web (check-in/check-out/cancelación) — móvil **solo lee**,
+ * nunca transiciona `status` (las transiciones viven en
+ * `shared/constants/statuses.ts` igual que las demás, mismo criterio de
+ * "un único lugar", pero móvil no las ejecuta).
  */
 export interface BookingDTO {
   id: string;
+  confirmation_code: string;
+  guest_link_code: string;
   guest_id: string;
-  room_id: string;
-  check_in_date: string;
-  check_out_date: string;
-  guests_count: number;
+  room_id?: string;
+  room_type_id: string;
+  rate_id?: string;
+  check_in: string;
+  check_out: string;
   status: BookingStatus;
-  linking_code: string;
-  total_price: number;
-  notes: string | null;
+  adults: number;
+  children: number;
+  total_amount_cents: number;
+  currency: Currency;
+  notes?: string;
   created_at: string;
+  updated_at: string;
 }
