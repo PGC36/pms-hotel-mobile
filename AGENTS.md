@@ -23,9 +23,10 @@ npm run lint           # ESLint (eslint-config-expo)
 npm run format          # Prettier — escribe cambios
 npm run format:check    # Prettier — solo verifica
 npx tsc --noEmit        # chequeo de tipos (usa el alias @/ vía tsconfig paths)
+npm run validate:contract  # valida statuses/montos/fechas/referencias de src/data/db.ts (scripts/validate-contract.ts)
 ```
 
-`npm run lint` y `npx tsc --noEmit` deben correr limpios antes de dar por terminado cualquier cambio.
+`npm run lint` y `npx tsc --noEmit` deben correr limpios antes de dar por terminado cualquier cambio. Si el cambio toca `src/data/db.ts`, `npm run validate:contract` también debe correr limpio — no reemplaza a `tsc`/`eslint`, verifica cosas que ellos no pueden (aritmética, referencias cruzadas, cobertura de estados, la trampa de conversión de montos a centavos).
 
 ## Reglas no negociables
 

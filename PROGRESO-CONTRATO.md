@@ -19,10 +19,10 @@ divergencia de nombre o tipo, se cambia móvil, nunca la web.
 | 2.2 `order` | ✅ hecho | `feat(order): reconciliar booking_id, centavos y tax exacto con el contrato` | Tabla de montos confirmada (incluye corrección de `tax_cents` a 12% exacto). `tsc`/`eslint` limpios. |
 | 2.2 `service-request` | ✅ hecho | `feat(service-request): reconciliar booking_id y type con el contrato` | `tsc`/`eslint` limpios. |
 | 2.3 `db.ts` (migración de datos) | ⏳ pendiente | | Tabla de montos antes/después completa aquí. |
-| 2.4 Servicios | ⏳ pendiente | | |
-| 2.5 Módulo `tasks` | ✅ sin acción necesaria | | Diagnóstico confirmó que ya soporta las dos máquinas por separado (`order`/`service_request`). Ver sección 13 de `DIAGNOSTICO-CONTRATO.md`. |
-| 2.6 Pantallas | ⏳ pendiente | | Solo lo que rompa compilación o muestre dato incorrecto — todas las pantallas de dominio siguen siendo placeholders vacíos (MOV-09+). |
-| Fase 3 — Pruebas | ⏳ pendiente | | |
+| 2.4 Servicios | ✅ hecho, sin commit propio | | Los servicios que existían (`housekeeping`, `order`, `service-request`, `menu`) se actualizaron dentro del commit de su propia entidad, no hizo falta cambiar sus firmas. `booking.service.ts`, `amenity.service.ts`, `stay.service.ts`, `cart.service.ts`, `history.service.ts`, `notification.service.ts` siguen vacíos (MOV-09+), sin nada que reconciliar todavía. |
+| 2.5 Módulo `tasks` | ✅ sin acción necesaria | | Diagnóstico confirmó que ya soporta las dos máquinas por separado (`order`/`service_request`). Ver sección 13 de `DIAGNOSTICO-CONTRATO.md`. Verificado en verde tras cambiar los literales de `room` (no afecta a `tasks`, que no importa `Room`). |
+| 2.6 Pantallas | ✅ sin acción necesaria | | `tsc`/`eslint` limpios en cada commit — ninguna pantalla de dominio rompió, porque todas siguen siendo placeholders vacíos (MOV-09+). Único ajuste fuera de un módulo de dominio: `shared/screens/ComponentCatalogScreen.tsx` (catálogo de referencia, no montado en `App.tsx`), actualizado en el commit de `room` para las dos secciones de badges nuevas. |
+| Fase 3 — Pruebas | ✅ hecho | `test: validar contrato reconciliado con scripts/validate-contract.ts` | Ver detalle abajo. |
 | Fase 5 — Cierre y PR | ⏳ pendiente | | |
 
 ## Nota de alcance: por qué 2.1 y 2.2(room) se hicieron en un solo commit
@@ -257,6 +257,44 @@ diagnóstico sección 16), es una entidad nueva y separada de
   móvil, reportados.
 - `requested_at` nuevo, igual a `created_at`.
 
+## Fase 3 — Pruebas
+
+No hay ningún framework de pruebas en el proyecto (ni jest, ni vitest, ni
+archivos `*.test.*`). Siguiendo AGENTS.md ("corre un script rápido con
+`npx tsx`, sin agregar dependencias") se creó `scripts/validate-contract.ts`
+— un script plano, sin dependencias nuevas en `package.json` (se agregó el
+atajo `npm run validate:contract`, que sigue invocando `npx tsx` en vez de
+declarar `tsx` como devDependency).
+
+Cubre los 6 puntos pedidos:
+
+1. Todo literal de estado en `db.ts` pertenece a su máquina — y además
+   cobertura completa (al menos un registro por estado posible, regla de
+   AGENTS.md sobre datos simulados).
+2. Transiciones inválidas rechazadas en las 4 máquinas (`room` ocupación,
+   `room` limpieza, `booking`, `order`, `service_request` — 5 en total,
+   una prueba explícita "no se puede saltar un paso" y otra "no se puede
+   salir de un estado terminal" por máquina donde aplica).
+3. **Prueba de la trampa:** `formatCurrency(32000) === "Q 320.00"` y
+   `formatCurrency` lanza si `amountCents` no es entero — si alguien migra
+   un campo de monto sin multiplicar por 100, esta prueba es la que lo
+   detecta.
+4. Fechas civiles: `toDomainCalendarDate("2026-09-10")` da día 10 (no 9),
+   más una verificación sobre las 13 fechas `check_in` reales de
+   `bookingsDB`.
+5. Sin referencias colgantes: `room.room_type_id`, `room_type.
+   room_feature_ids`, `booking.guest_id/room_id/room_type_id`, `order.
+   booking_id/room_id/guest_id/items[].product_id`, `service_request.
+   booking_id/room_id/guest_id` — todas verificadas contra los datos reales
+   de `db.ts`.
+6. `isRoomAssignable('available', 'dirty') === false`, más la verificación
+   de que existe al menos una habitación real así en el dataset
+   (`room-102`) y que la función también da `false` sobre ese registro
+   real.
+
+`npm run validate:contract` corre limpio (todas las verificaciones
+pasaron), igual que `tsc --noEmit` y `eslint`.
+
 ## Huecos y decisiones pendientes (no resueltos aquí, ver sección 16 del diagnóstico)
 
 - División de `booking.guests_count` en `adults`/`children` — sin fuente de verdad. Se resuelve en 2.3 con `adults = guests_count`, `children = 0` para la mayoría, dejando 2-3 reservas con acompañantes menores para variedad de datos (instrucción explícita del usuario).
@@ -280,3 +318,4 @@ diagnóstico sección 16), es una entidad nueva y separada de
 | `docs(user): documentar por que no se reconcilia en esta rama` | 2.2 (`user`, sin cambios de código) | Ver nota arriba. |
 | `feat(order): reconciliar booking_id, centavos y tax exacto con el contrato` | 2.2 (`order`) | Ver tabla de montos y corrección de `tax_cents` arriba. `tsc`/`eslint` limpios. |
 | `feat(service-request): reconciliar booking_id y type con el contrato` | 2.2 (`service-request`) | Ver decisiones arriba. `tsc`/`eslint` limpios. |
+| `test: validar contrato reconciliado con scripts/validate-contract.ts` | Fase 3 | Ver detalle arriba. `npm run validate:contract` limpio. |

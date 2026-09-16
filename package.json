@@ -34,7 +34,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "validate:contract": "npx tsx scripts/validate-contract.ts"
   },
   "private": true
 }
