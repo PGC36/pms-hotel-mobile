@@ -1,12 +1,15 @@
-import type { GuestDocumentType } from '../dtos/guest.dto';
+export type GuestDocumentType = 'passport' | 'nationalId' | 'driverLicense';
 
 export interface GuestModel {
   id: string;
-  fullName: string;
-  email: string;
-  phone: string;
-  documentType: GuestDocumentType;
-  documentNumber: string;
-  nationality: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone?: string;
+  nationality?: string;
+  documentType?: GuestDocumentType;
+  documentNumber?: string;
+  notes?: string;
   createdAt: Date;
+  updatedAt: Date;
 }

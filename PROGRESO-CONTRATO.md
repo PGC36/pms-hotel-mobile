@@ -11,7 +11,7 @@ divergencia de nombre o tipo, se cambia móvil, nunca la web.
 |---|---|---|---|
 | Fase 1 — Diagnóstico | ✅ hecho | `docs: diagnostico de divergencias con el contrato oficial` | Ver `docs/DIAGNOSTICO-CONTRATO.md`. Confirmado por el usuario. |
 | 2.1 `statuses.ts` (máquinas de estado, solo `room`) + 2.2 `room`/`room-type`/`room-feature` | ✅ hecho | (siguiente commit) | Combinados en un solo commit porque `RoomDTO.status` no puede compilar contra `db.ts` sin el split ya hecho — ver nota de alcance abajo. `tsc`/`eslint` limpios. |
-| 2.2 `guest` | ⏳ pendiente | | |
+| 2.2 `guest` | ✅ hecho | `feat(guest): reconciliar first_name/last_name y document_type con el contrato` | `tsc`/`eslint` limpios. |
 | 2.2 `booking` | ⏳ pendiente | | |
 | 2.2 `product` | ⏳ pendiente | | |
 | 2.2 `amenity` | ⏳ pendiente | | |
@@ -79,6 +79,17 @@ mapper.ts` + `room-type`/`room-feature` (entidades nuevas) + migración de
   siendo placeholders vacíos (MOV-09 en adelante). No hubo que parar por
   este motivo.
 
+## Decisión tomada en el commit de `guest`
+
+- **`document_type: 'dpi'` → `'national_id'`.** El contrato de la web no
+  tiene el literal `'dpi'`; su equivalente conceptual es `'national_id'`
+  (documento nacional de identidad). Se mapea así en los 7 huéspedes
+  guatemaltecos del dataset. **Queda anotado para coordinar con el equipo
+  de la web:** el término local en Guatemala es "DPI", no "cédula" ni
+  "documento nacional" genérico — si la web algún día expone un literal
+  específico para Guatemala, este mapeo debería revisarse. No se resuelve
+  unilateralmente desde móvil (regla de Fase 4).
+
 ## Huecos y decisiones pendientes (no resueltos aquí, ver sección 16 del diagnóstico)
 
 - División de `booking.guests_count` en `adults`/`children` — sin fuente de verdad. Se resuelve en 2.3 con `adults = guests_count`, `children = 0` para la mayoría, dejando 2-3 reservas con acompañantes menores para variedad de datos (instrucción explícita del usuario).
@@ -95,3 +106,4 @@ mapper.ts` + `room-type`/`room-feature` (entidades nuevas) + migración de
 |---|---|---|
 | `docs: diagnostico de divergencias con el contrato oficial` | Fase 1 | Diagnóstico completo, sin cambios de código. |
 | `feat(room): separar ocupacion y limpieza, crear room-type y room-feature` | 2.1 + 2.2 (`room`, `room-type`, `room-feature`) | `tsc`/`eslint` limpios. Ver decisiones arriba. |
+| `feat(guest): reconciliar first_name/last_name y document_type con el contrato` | 2.2 (`guest`) | `full_name` dividido en `first_name`/`last_name`; `document_type: 'dpi'` → `'national_id'` (anotado abajo, es el término local guatemalteco); `email`/`phone`/`nationality`/`document_*` ahora opcionales. `tsc`/`eslint` limpios. |
