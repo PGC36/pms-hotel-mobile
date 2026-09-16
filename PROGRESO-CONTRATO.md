@@ -13,7 +13,7 @@ divergencia de nombre o tipo, se cambia móvil, nunca la web.
 | 2.1 `statuses.ts` (máquinas de estado, solo `room`) + 2.2 `room`/`room-type`/`room-feature` | ✅ hecho | (siguiente commit) | Combinados en un solo commit porque `RoomDTO.status` no puede compilar contra `db.ts` sin el split ya hecho — ver nota de alcance abajo. `tsc`/`eslint` limpios. |
 | 2.2 `guest` | ✅ hecho | `feat(guest): reconciliar first_name/last_name y document_type con el contrato` | `tsc`/`eslint` limpios. |
 | 2.2 `booking` | ✅ hecho | `feat(booking): reconciliar campos, centavos y las 6 transiciones con el contrato` | Tabla de montos confirmada por el usuario antes del commit. `tsc`/`eslint` limpios. |
-| 2.2 `product` | ⏳ pendiente | | |
+| 2.2 `product` | ✅ hecho | `feat(product): reconciliar sku, centavos y categoria con el contrato` | Tabla de montos confirmada. `tsc`/`eslint` limpios. |
 | 2.2 `amenity` | ⏳ pendiente | | |
 | 2.2 `user` | ⏳ pendiente | | No tocar `password`/login (MOV-06). |
 | 2.2 `order` | ⏳ pendiente | | |
@@ -125,6 +125,40 @@ mapper.ts` + `room-type`/`room-feature` (entidades nuevas) + migración de
 - Se corrigió `new Date()` directo sobre fecha civil en el mapper, usando
   la nueva utilidad `toDomainCalendarDate` (`shared/utils/date.ts`).
 
+## Decisiones y hallazgos del commit de `product`
+
+- **Montos:** `price` → `price_cents` (×100) en los 25 productos. Tabla
+  completa mostrada y confirmada por el usuario antes del commit.
+- **`sku`:** se agregó `FYB-0001`…`FYB-0025` (prefijo "comida y bebida"
+  tomado literalmente del handoff sección 7.2), sin validar formato.
+- **`stock_quantity`/`reorder_level`:** están en el DTO oficial de
+  `product` (handoff sección 3.6) — no son una adición de móvil. Como no
+  había ningún dato de partida (el dataset original no tenía concepto de
+  stock), **los valores son inventados, no migrados**: porciones/umbral
+  razonables por tipo de platillo, coherentes con el resto del dataset. Si
+  en el futuro se conecta un `inventoryService` real, estos valores deben
+  tratarse como semilla de desarrollo, no como stock real.
+- **Observación para la sesión de equipo (no resuelta aquí):** el contrato
+  separa `product` de `inventory_item` como entidades distintas con vínculo
+  explícito (Lote D, sección 3.11 del handoff), y aun así `product`
+  conserva su propio `stock_quantity`/`reorder_level`. Puede ser
+  deliberado (un producto de Room Service gestiona su disponibilidad
+  simple, independiente del inventario operativo más detallado) o puede
+  ser un residuo de antes de esa separación. **Móvil no lo resuelve** —
+  queda anotado para que el equipo lo confirme.
+- **Hallazgo que bloquea MOV-17 (pestañas de categoría del menú):** los 25
+  productos del dataset de móvil son platillos/bebidas de Room Service —
+  ninguno corresponde a `minibar`, `shop` u `other`. Los 25 quedan en
+  `category: 'food_and_beverage'`, el único valor usado. **La taxonomía de
+  4 categorías del contrato no sirve para agrupar el menú de Room
+  Service** (no hay forma de armar pestañas "Desayunos"/"Bebidas"/
+  "Postres" con un solo valor de categoría). El handoff (sección 7.3)
+  documenta que la web recomendó un campo `menu_section` separado pero
+  **no lo implementó** — no se inventa aquí; queda como evidencia concreta
+  de móvil para la sesión de equipo que decida D-005.
+- `is_available` → `active` (mismo valor). `image_url`/
+  `preparation_time_minutes` se conservan como campos propios de móvil.
+
 ## Huecos y decisiones pendientes (no resueltos aquí, ver sección 16 del diagnóstico)
 
 - División de `booking.guests_count` en `adults`/`children` — sin fuente de verdad. Se resuelve en 2.3 con `adults = guests_count`, `children = 0` para la mayoría, dejando 2-3 reservas con acompañantes menores para variedad de datos (instrucción explícita del usuario).
@@ -143,3 +177,4 @@ mapper.ts` + `room-type`/`room-feature` (entidades nuevas) + migración de
 | `feat(room): separar ocupacion y limpieza, crear room-type y room-feature` | 2.1 + 2.2 (`room`, `room-type`, `room-feature`) | `tsc`/`eslint` limpios. Ver decisiones arriba. |
 | `feat(guest): reconciliar first_name/last_name y document_type con el contrato` | 2.2 (`guest`) | `full_name` dividido en `first_name`/`last_name`; `document_type: 'dpi'` → `'national_id'` (anotado abajo, es el término local guatemalteco); `email`/`phone`/`nationality`/`document_*` ahora opcionales. `tsc`/`eslint` limpios. |
 | `feat(booking): reconciliar campos, centavos y las 6 transiciones con el contrato` | 2.1 (máquina `Booking` en `statuses.ts`) + 2.2 (`booking`) | Ver tabla de montos y decisiones arriba. `tsc`/`eslint` limpios. |
+| `feat(product): reconciliar sku, centavos y categoria con el contrato` | 2.2 (`product`) | Ver tabla de montos y hallazgos arriba (bloqueo de MOV-17). `tsc`/`eslint` limpios. |
