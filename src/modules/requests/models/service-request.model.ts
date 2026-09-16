@@ -1,6 +1,6 @@
 import type { StaffRole } from '@/shared/constants/roles';
 import type { ServiceRequestStatus } from '@/shared/constants/statuses';
-import type { ServiceRequestCategory } from '../dtos/service-request.dto';
+import type { ServiceRequestType } from '../dtos/service-request.dto';
 
 export interface ServiceRequestItem {
   name: string;
@@ -9,17 +9,20 @@ export interface ServiceRequestItem {
 
 export interface ServiceRequestModel {
   id: string;
+  bookingId: string;
   roomId: string;
-  guestId: string;
-  category: ServiceRequestCategory;
-  assignedRole: StaffRole;
-  title: string;
+  guestId?: string;
+  type: ServiceRequestType;
   description: string;
-  items: ServiceRequestItem[] | null;
-  preferredTime: string | null;
   status: ServiceRequestStatus;
-  rejectionReason: string | null;
-  staffNotes: string | null;
+  notes?: string;
+  chargeId?: string;
+  requestedAt: Date;
   createdAt: Date;
   updatedAt: Date;
+  assignedRole?: StaffRole;
+  title?: string;
+  items?: ServiceRequestItem[];
+  preferredTime?: string;
+  rejectionReason?: string;
 }

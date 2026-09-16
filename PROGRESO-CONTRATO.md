@@ -17,7 +17,7 @@ divergencia de nombre o tipo, se cambia móvil, nunca la web.
 | 2.2 `amenity` | ✅ hecho | `feat(amenity): reconciliar horario opcional y categoria con el contrato` | `tsc`/`eslint` limpios. |
 | 2.2 `user` | ⏸️ deliberadamente sin reconciliar | | Ver nota abajo — está fusionado con el login de MOV-06. |
 | 2.2 `order` | ✅ hecho | `feat(order): reconciliar booking_id, centavos y tax exacto con el contrato` | Tabla de montos confirmada (incluye corrección de `tax_cents` a 12% exacto). `tsc`/`eslint` limpios. |
-| 2.2 `service-request` | ⏳ pendiente | | |
+| 2.2 `service-request` | ✅ hecho | `feat(service-request): reconciliar booking_id y type con el contrato` | `tsc`/`eslint` limpios. |
 | 2.3 `db.ts` (migración de datos) | ⏳ pendiente | | Tabla de montos antes/después completa aquí. |
 | 2.4 Servicios | ⏳ pendiente | | |
 | 2.5 Módulo `tasks` | ✅ sin acción necesaria | | Diagnóstico confirmó que ya soporta las dos máquinas por separado (`order`/`service_request`). Ver sección 13 de `DIAGNOSTICO-CONTRATO.md`. |
@@ -232,6 +232,31 @@ diagnóstico sección 16), es una entidad nueva y separada de
 - `requested_at` nuevo, igual a `created_at` (móvil no distingue "hora de
   solicitud" de "hora de creación del registro" hoy).
 
+## Decisiones tomadas en el commit de `service-request`
+
+- **`booking_id` agregado**, derivado 1:1 de `room_id`/`guest_id` contra
+  `bookingsDB` (mismo criterio que `order`).
+- **`category` → `type`:** taxonomía propia (`cleaning`/`items`/
+  `concierge`) → la del contrato (`housekeeping`/`concierge`/`maintenance`/
+  `other`). `cleaning` e `items` colapsan a `'housekeeping'` — el propio
+  ejemplo `SR-001` del handoff clasifica una solicitud de "toallas y
+  almohadas adicionales" como `housekeeping`, así que no es una
+  invención. La distinción de móvil entre "limpieza" y "pedir artículos"
+  sigue siendo visible (la presencia de `items` en el registro), solo deja
+  de ser un literal de categoría separado. Ningún registro usa hoy
+  `maintenance` ni `other` — el dataset de móvil no tiene ese caso (el
+  diagnóstico ya señaló en la sección 16 que "reportar desperfectos" de
+  limpieza probablemente mapea a `maintenance`, pero es una inferencia sin
+  confirmar, no se fuerza aquí).
+- **`staff_notes` → `notes`** (el campo del contrato). `rejection_reason`
+  se mantiene aparte, mismo patrón que se usó en `order`.
+- **`assigned_role` se conserva** como campo propio de móvil — es el campo
+  "asignado a" que el contrato no tiene (diagnóstico sección 16), no se
+  inventa su equivalente en el contrato.
+- `title`, `items`, `preferred_time` se conservan como campos propios de
+  móvil, reportados.
+- `requested_at` nuevo, igual a `created_at`.
+
 ## Huecos y decisiones pendientes (no resueltos aquí, ver sección 16 del diagnóstico)
 
 - División de `booking.guests_count` en `adults`/`children` — sin fuente de verdad. Se resuelve en 2.3 con `adults = guests_count`, `children = 0` para la mayoría, dejando 2-3 reservas con acompañantes menores para variedad de datos (instrucción explícita del usuario).
@@ -254,3 +279,4 @@ diagnóstico sección 16), es una entidad nueva y separada de
 | `feat(amenity): reconciliar horario opcional y categoria con el contrato` | 2.2 (`amenity`) | Ver decisiones arriba. `tsc`/`eslint` limpios. |
 | `docs(user): documentar por que no se reconcilia en esta rama` | 2.2 (`user`, sin cambios de código) | Ver nota arriba. |
 | `feat(order): reconciliar booking_id, centavos y tax exacto con el contrato` | 2.2 (`order`) | Ver tabla de montos y corrección de `tax_cents` arriba. `tsc`/`eslint` limpios. |
+| `feat(service-request): reconciliar booking_id y type con el contrato` | 2.2 (`service-request`) | Ver decisiones arriba. `tsc`/`eslint` limpios. |

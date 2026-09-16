@@ -66,7 +66,7 @@ export async function updateServiceRequestStatus(
   request.status = nextStatus;
   request.updated_at = new Date().toISOString();
   if (options.rejectionReason) request.rejection_reason = options.rejectionReason;
-  if (options.staffNotes) request.staff_notes = options.staffNotes;
+  if (options.staffNotes) request.notes = options.staffNotes;
 
   return mapServiceRequestDTOToModel(request);
 }
