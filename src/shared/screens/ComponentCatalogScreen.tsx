@@ -158,9 +158,19 @@ export function ComponentCatalogScreen() {
         </Row>
       </Section>
 
-      <Section title="Badge — estados de habitación (Room)">
+      <Section title="Badge — ocupación de habitación (Room)">
         <Row wrap>
           {Object.entries(statusColors.room).map(([status, token]) => (
+            <View key={status} style={[styles.statusBadge, { backgroundColor: token.background }]}>
+              <Text style={[typography.caption, { color: token.text }]}>{status}</Text>
+            </View>
+          ))}
+        </Row>
+      </Section>
+
+      <Section title="Badge — limpieza de habitación (RoomHousekeeping)">
+        <Row wrap>
+          {Object.entries(statusColors.roomHousekeeping).map(([status, token]) => (
             <View key={status} style={[styles.statusBadge, { backgroundColor: token.background }]}>
               <Text style={[typography.caption, { color: token.text }]}>{status}</Text>
             </View>

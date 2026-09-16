@@ -1,15 +1,18 @@
-import type { RoomStatus } from '@/shared/constants/statuses';
-import type { RoomType } from '../dtos/room.dto';
+import type { RoomHousekeepingStatus, RoomStatus } from '@/shared/constants/statuses';
 
 export interface RoomModel {
   id: string;
-  number: string;
+  roomNumber: string;
+  roomTypeId: string;
   floor: number;
-  type: RoomType;
   status: RoomStatus;
-  capacity: number;
-  pricePerNight: number;
-  description: string;
-  imageUrl: string;
-  isActive: boolean;
+  housekeepingStatus: RoomHousekeepingStatus;
+  /** Calculado por el mapper — nunca reimplementar esta comparación (`isRoomAssignable`). */
+  isAssignable: boolean;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  description?: string;
+  imageUrl?: string;
+  isActive?: boolean;
 }

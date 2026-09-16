@@ -1,15 +1,19 @@
+import { isRoomAssignable } from '@/shared/constants/statuses';
 import type { RoomDTO } from '../dtos/room.dto';
 import type { RoomModel } from '../models/room.model';
 
 export function mapRoomDTOToModel(dto: RoomDTO): RoomModel {
   return {
     id: dto.id,
-    number: dto.number,
+    roomNumber: dto.room_number,
+    roomTypeId: dto.room_type_id,
     floor: dto.floor,
-    type: dto.type,
     status: dto.status,
-    capacity: dto.capacity,
-    pricePerNight: dto.price_per_night,
+    housekeepingStatus: dto.housekeeping_status,
+    isAssignable: isRoomAssignable(dto.status, dto.housekeeping_status),
+    notes: dto.notes,
+    createdAt: new Date(dto.created_at),
+    updatedAt: new Date(dto.updated_at),
     description: dto.description,
     imageUrl: dto.image_url,
     isActive: dto.is_active,

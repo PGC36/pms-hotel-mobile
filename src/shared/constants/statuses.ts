@@ -91,26 +91,111 @@ export const SERVICE_REQUEST_STATUS_LABELS: Record<ServiceRequestStatus, string>
 };
 
 // ---------------------------------------------------------------------------
-// Room (estado operativo de limpieza de la habitación)
+// Room — ocupación (`status`). La escribe la web; móvil solo lee.
+// Contrato oficial: docs/HANDOFF-MOVIL.md sección 4.
 // ---------------------------------------------------------------------------
 
-export const ROOM_STATUSES = ['dirty', 'cleaning', 'clean', 'inspected', 'blocked'] as const;
+export const ROOM_STATUSES = ['available', 'occupied', 'maintenance', 'outOfService'] as const;
 
 export type RoomStatus = (typeof ROOM_STATUSES)[number];
 
 /**
- * dirty → cleaning → clean → inspected
- * cualquiera → blocked (mantenimiento)
- * blocked → dirty: una vez resuelto el mantenimiento, la habitación vuelve
- * al ciclo de limpieza normal. No está en architecture.md explícitamente,
- * pero sin esta salida una habitación bloqueada nunca podría recuperarse.
+ * available → occupied | maintenance | outOfService
+ * occupied  → available | maintenance | outOfService
+ * maintenance → available | outOfService
+ * outOfService → available | maintenance
+ * Móvil nunca ejecuta estas transiciones (las aplica la web); se centralizan
+ * aquí igual que las demás máquinas para que ninguna pantalla las reimplemente
+ * al mostrarlas.
  */
 export const ROOM_STATUS_TRANSITIONS: Record<RoomStatus, RoomStatus[]> = {
-  dirty: ['cleaning', 'blocked'],
-  cleaning: ['clean', 'blocked'],
-  clean: ['inspected', 'dirty', 'blocked'],
-  inspected: ['dirty', 'blocked'],
-  blocked: ['dirty'],
+  available: ['occupied', 'maintenance', 'outOfService'],
+  occupied: ['available', 'maintenance', 'outOfService'],
+  maintenance: ['available', 'outOfService'],
+  outOfService: ['available', 'maintenance'],
+};
+
+export const ROOM_STATUS_LABELS: Record<RoomStatus, string> = {
+  available: 'Disponible',
+  occupied: 'Ocupada',
+  maintenance: 'Mantenimiento',
+  outOfService: 'Fuera de servicio',
+};
+
+// ---------------------------------------------------------------------------
+// Room — limpieza (`housekeepingStatus`). La escribe móvil.
+// ---------------------------------------------------------------------------
+
+export const ROOM_HOUSEKEEPING_STATUSES = ['dirty', 'cleaning', 'clean', 'inspected'] as const;
+
+export type RoomHousekeepingStatus = (typeof ROOM_HOUSEKEEPING_STATUSES)[number];
+
+/**
+ * dirty → cleaning → clean → inspected
+ * clean/inspected → dirty (la habitación se vuelve a ensuciar)
+ */
+export const ROOM_HOUSEKEEPING_STATUS_TRANSITIONS: Record<
+  RoomHousekeepingStatus,
+  RoomHousekeepingStatus[]
+> = {
+  dirty: ['cleaning'],
+  cleaning: ['clean'],
+  clean: ['inspected', 'dirty'],
+  inspected: ['dirty'],
+};
+
+export const ROOM_HOUSEKEEPING_STATUS_LABELS: Record<RoomHousekeepingStatus, string> = {
+  dirty: 'Sucia',
+  cleaning: 'En limpieza',
+  clean: 'Limpia',
+  inspected: 'Inspeccionada',
+};
+
+/**
+ * Una habitación es asignable a un huésped solo si está `available` (libre de
+ * ocupación) y su limpieza está `clean` o `inspected`. Nunca reimplementar
+ * esta comparación fuera de esta función (docs/HANDOFF-MOVIL.md sección 3.1).
+ */
+export function isRoomAssignable(
+  status: RoomStatus,
+  housekeepingStatus: RoomHousekeepingStatus,
+): boolean {
+  return status === 'available' && (housekeepingStatus === 'clean' || housekeepingStatus === 'inspected');
+}
+
+// ---------------------------------------------------------------------------
+// Booking — la gestiona la web de punta a punta; móvil solo lee, nunca
+// transiciona. Se centraliza aquí de todos modos (contrato sección 4) para
+// que ninguna pantalla compare literales de estado por su cuenta.
+// ---------------------------------------------------------------------------
+
+export const BOOKING_STATUSES = [
+  'pending',
+  'confirmed',
+  'checkedIn',
+  'checkedOut',
+  'cancelled',
+  'noShow',
+] as const;
+
+export type BookingStatus = (typeof BOOKING_STATUSES)[number];
+
+export const BOOKING_STATUS_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
+  pending: ['confirmed', 'cancelled', 'noShow'],
+  confirmed: ['checkedIn', 'cancelled', 'noShow'],
+  checkedIn: ['checkedOut'],
+  checkedOut: [],
+  cancelled: [],
+  noShow: [],
+};
+
+export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
+  pending: 'Pendiente',
+  confirmed: 'Confirmada',
+  checkedIn: 'Con check-in',
+  checkedOut: 'Con check-out',
+  cancelled: 'Cancelada',
+  noShow: 'No show',
 };
 
 // ---------------------------------------------------------------------------
