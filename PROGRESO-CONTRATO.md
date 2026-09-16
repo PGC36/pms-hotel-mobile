@@ -16,7 +16,7 @@ divergencia de nombre o tipo, se cambia móvil, nunca la web.
 | 2.2 `product` | ✅ hecho | `feat(product): reconciliar sku, centavos y categoria con el contrato` | Tabla de montos confirmada. `tsc`/`eslint` limpios. |
 | 2.2 `amenity` | ✅ hecho | `feat(amenity): reconciliar horario opcional y categoria con el contrato` | `tsc`/`eslint` limpios. |
 | 2.2 `user` | ⏸️ deliberadamente sin reconciliar | | Ver nota abajo — está fusionado con el login de MOV-06. |
-| 2.2 `order` | ⏳ pendiente | | |
+| 2.2 `order` | ✅ hecho | `feat(order): reconciliar booking_id, centavos y tax exacto con el contrato` | Tabla de montos confirmada (incluye corrección de `tax_cents` a 12% exacto). `tsc`/`eslint` limpios. |
 | 2.2 `service-request` | ⏳ pendiente | | |
 | 2.3 `db.ts` (migración de datos) | ⏳ pendiente | | Tabla de montos antes/después completa aquí. |
 | 2.4 Servicios | ⏳ pendiente | | |
@@ -204,6 +204,34 @@ futuro se necesita el `user` de solo lectura del contrato (ej. para mostrar
 diagnóstico sección 16), es una entidad nueva y separada de
 `auth/dtos/user.dto.ts`, no una modificación de este archivo.
 
+## Decisiones tomadas en el commit de `order`
+
+- **Montos:** `items[].unit_price` → `unit_price_cents`, y `subtotal`/`tax`/
+  `total` → `subtotal_cents`/`tax_cents`/`total_cents` (×100) en las 20
+  órdenes. Tabla completa confirmada por el usuario antes del commit.
+- **Corrección de `tax_cents`:** el dataset original redondeaba el impuesto
+  al quetzal entero (ej. `order-01`: 12% de Q73 = Q8.76, pero el dato
+  sembrado tenía `tax: 9`). Con centavos ese redondeo ya no aplica —
+  `tax_cents` se recalculó como 12% exacto de `subtotal_cents` (siempre da
+  entero porque `subtotal_cents` es múltiplo de 100), y `total_cents` se
+  ajustó en consecuencia. Las 20 órdenes cambiaron sus valores de
+  `tax`/`total` respecto a lo mostrado en el primer borrador del commit —
+  tabla completa en el historial del chat.
+- **`booking_id` agregado**, derivado 1:1 de `room_id`/`guest_id` contra
+  `bookingsDB` (las 20 órdenes usan solo los 8 pares room/guest de las
+  reservas `checkedIn`).
+- **`charged_to_room` se mantiene sin cambios de comportamiento** — es el
+  mecanismo que móvil ya usa (`chargeOrderToRoom()` en
+  `order.service.ts`). Se agregó `charge_id?` (opcional, sin poblar) solo
+  para que el campo del contrato exista; no se reemplaza el mecanismo
+  actual (instrucción explícita del usuario, sección 5.3 del handoff: la
+  conexión real order→charge no está implementada en ningún lado).
+- `rejection_reason`, `notes`, `subtotal_cents`/`tax_cents`/`total_cents`,
+  `charged_to_room`, `delivered_at` se conservan como campos propios de
+  móvil (no están en el contrato) — reportados, no borrados.
+- `requested_at` nuevo, igual a `created_at` (móvil no distingue "hora de
+  solicitud" de "hora de creación del registro" hoy).
+
 ## Huecos y decisiones pendientes (no resueltos aquí, ver sección 16 del diagnóstico)
 
 - División de `booking.guests_count` en `adults`/`children` — sin fuente de verdad. Se resuelve en 2.3 con `adults = guests_count`, `children = 0` para la mayoría, dejando 2-3 reservas con acompañantes menores para variedad de datos (instrucción explícita del usuario).
@@ -224,3 +252,5 @@ diagnóstico sección 16), es una entidad nueva y separada de
 | `feat(booking): reconciliar campos, centavos y las 6 transiciones con el contrato` | 2.1 (máquina `Booking` en `statuses.ts`) + 2.2 (`booking`) | Ver tabla de montos y decisiones arriba. `tsc`/`eslint` limpios. |
 | `feat(product): reconciliar sku, centavos y categoria con el contrato` | 2.2 (`product`) | Ver tabla de montos y hallazgos arriba (bloqueo de MOV-17). `tsc`/`eslint` limpios. |
 | `feat(amenity): reconciliar horario opcional y categoria con el contrato` | 2.2 (`amenity`) | Ver decisiones arriba. `tsc`/`eslint` limpios. |
+| `docs(user): documentar por que no se reconcilia en esta rama` | 2.2 (`user`, sin cambios de código) | Ver nota arriba. |
+| `feat(order): reconciliar booking_id, centavos y tax exacto con el contrato` | 2.2 (`order`) | Ver tabla de montos y corrección de `tax_cents` arriba. `tsc`/`eslint` limpios. |
