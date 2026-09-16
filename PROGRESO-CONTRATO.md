@@ -1,5 +1,11 @@
 # Progreso: reconciliación del contrato de datos con la web
 
+**Estado: cerrada.** Las Fases 1-5 del plan de reconciliación están completas
+en la rama `feat/reconciliar-contrato` (sobre `develop`), con PR abierto hacia
+`develop` sin fusionar. Este archivo queda como el registro permanente de qué
+se reconcilió, qué se decidió y qué quedó pendiente — no se borra después del
+merge.
+
 Bitácora de la rama `feat/reconciliar-contrato` (sobre `develop`). Un commit por
 entidad reconciliada; esta tabla se actualiza después de cada commit. Regla de
 oro: el contrato de la web (`docs/HANDOFF-MOVIL.md`) gana siempre — cuando hay
@@ -23,7 +29,7 @@ divergencia de nombre o tipo, se cambia móvil, nunca la web.
 | 2.5 Módulo `tasks` | ✅ sin acción necesaria | | Diagnóstico confirmó que ya soporta las dos máquinas por separado (`order`/`service_request`). Ver sección 13 de `DIAGNOSTICO-CONTRATO.md`. Verificado en verde tras cambiar los literales de `room` (no afecta a `tasks`, que no importa `Room`). |
 | 2.6 Pantallas | ✅ sin acción necesaria | | `tsc`/`eslint` limpios en cada commit — ninguna pantalla de dominio rompió, porque todas siguen siendo placeholders vacíos (MOV-09+). Único ajuste fuera de un módulo de dominio: `shared/screens/ComponentCatalogScreen.tsx` (catálogo de referencia, no montado en `App.tsx`), actualizado en el commit de `room` para las dos secciones de badges nuevas. |
 | Fase 3 — Pruebas | ✅ hecho | `test: validar contrato reconciliado con scripts/validate-contract.ts` | Ver detalle abajo. |
-| Fase 5 — Cierre y PR | ⏳ pendiente | | |
+| Fase 5 — Cierre y PR | ✅ hecho | `docs: cerrar reconciliacion, actualizar architecture.md y CLAUDE.md` | `architecture.md` sección 8 nueva (contrato reconciliado, web como fuente de verdad). `CLAUDE.md` y `AGENTS.md` actualizados. PR hacia `develop` — no fusionado. |
 
 ## Nota de alcance: por qué 2.1 y 2.2(room) se hicieron en un solo commit
 
@@ -319,3 +325,4 @@ pasaron), igual que `tsc --noEmit` y `eslint`.
 | `feat(order): reconciliar booking_id, centavos y tax exacto con el contrato` | 2.2 (`order`) | Ver tabla de montos y corrección de `tax_cents` arriba. `tsc`/`eslint` limpios. |
 | `feat(service-request): reconciliar booking_id y type con el contrato` | 2.2 (`service-request`) | Ver decisiones arriba. `tsc`/`eslint` limpios. |
 | `test: validar contrato reconciliado con scripts/validate-contract.ts` | Fase 3 | Ver detalle arriba. `npm run validate:contract` limpio. |
+| `docs: cerrar reconciliacion, actualizar architecture.md y CLAUDE.md` | Fase 5 | Cierre de la bitácora, `architecture.md` sección 8, `CLAUDE.md`/`AGENTS.md` actualizados. |

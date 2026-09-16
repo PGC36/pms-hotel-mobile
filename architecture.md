@@ -77,16 +77,29 @@ El módulo `tasks` es el núcleo genérico que los tres roles de personal reutil
 
 Viven en `src/shared/constants/statuses.ts` y son la única fuente de verdad sobre qué transición es válida desde cada estado. Las pantallas habilitan botones leyendo esta definición — nunca con condicionales sueltos.
 
+**La web (`pms-hotel-boutique`) es la fuente de verdad de estos literales y transiciones**, no este documento — ver sección 8. `room` tiene **dos** máquinas independientes, no una: ocupación (la escribe la web) y limpieza (la escribe móvil). Son conceptos distintos que pueden combinarse (una habitación `available` pero `dirty` no es asignable — ver `isRoomAssignable()`).
+
 ```
-Order:          pending → accepted → preparing → ready → onTheWay → delivered
-                pending → rejected
-                cancelable mientras esté en pending o accepted
+Order:              pending → accepted → preparing → ready → onTheWay → delivered
+                    pending → rejected
+                    cancelable mientras esté en pending o accepted
 
-ServiceRequest: pending → accepted → inProgress → completed
-                pending → rejected
+ServiceRequest:     pending → accepted → inProgress → completed
+                    pending → rejected
 
-Room:           dirty → cleaning → clean → inspected
-                cualquiera → blocked (mantenimiento)
+Room (ocupación):   available → occupied | maintenance | outOfService
+                    occupied → available | maintenance | outOfService
+                    maintenance → available | outOfService
+                    outOfService → available | maintenance
+                    Móvil solo lee — la escribe la web.
+
+Room (limpieza):    dirty → cleaning → clean → inspected
+                    clean/inspected → dirty
+                    Móvil la escribe de punta a punta.
+
+Booking:            pending → confirmed → checkedIn → checkedOut
+                    pending/confirmed → cancelled | noShow
+                    Móvil solo lee — la gestiona la web de punta a punta.
 ```
 
 ---
@@ -180,4 +193,22 @@ Cada módulo de dominio sigue internamente el patrón `dtos/ → models/ → map
 
 ---
 
-_Este documento se actualiza en los tickets MOV-02, MOV-13 y MOV-22 conforme la arquitectura pasa de plan a código construido. Fuente original de estas decisiones: `docs/plan-app-movil.md`._
+## 8. Contrato de datos: la web es la fuente de verdad
+
+MOV-04 diseñó el contrato de datos de móvil **antes** de que la web (`pms-hotel-boutique`) publicara el suyo. En 2026-09 la web entregó `docs/HANDOFF-MOVIL.md` — un traspaso campo por campo, verificado contra su código real — y móvil reconcilió su copia contra ese documento (rama `feat/reconciliar-contrato`, bitácora completa en `PROGRESO-CONTRATO.md`, diagnóstico entidad por entidad en `docs/DIAGNOSTICO-CONTRATO.md`).
+
+**Regla desde entonces, sin excepción:** cuando el contrato de la web y el código de móvil no coinciden en nombre, tipo o literal, se cambia móvil. Nunca al revés. Si un campo de móvil no tiene equivalente en el contrato, se conserva y se documenta — no se borra sin coordinar con el equipo; y si móvil necesita un campo que el contrato no tiene, se propone al equipo (procedimiento: sección 9 de `docs/CONTRATO-DATOS.md` en el repo de la web, resumido en la sección 9 del handoff), nunca se inventa unilateralmente.
+
+Entidades cubiertas por el contrato compartido: `room`, `room-type`, `room-feature` (las dos últimas no existían en móvil antes de esta reconciliación), `guest`, `booking`, `product`, `amenity`, `order`, `service-request`. `user` es una excepción deliberada: en móvil está fusionado con el mecanismo de login propio de MOV-06 (trae `password`, lo consume `AuthContext`) y no se reconcilia — ver `PROGRESO-CONTRATO.md` para el detalle. `session` no aplica a móvil (el propio contrato lo dice explícitamente). `notification` y `cart-item` son exclusivos de móvil, fuera del contrato compartido por diseño.
+
+Convenciones que móvil hereda del contrato, sin negociación:
+
+- Todo campo de dinero termina en `_cents`, entero; `currency` es el literal `'GTQ'`, nunca una unión abierta. `shared/utils/formatters.ts` (`formatCurrency`) lanza si recibe un monto no entero — es la guarda contra migrar un campo a centavos sin multiplicar por 100.
+- Fechas: ISO 8601 completo para timestamps, `"YYYY-MM-DD"` sin hora para fechas civiles (`check_in`/`check_out`). `shared/utils/date.ts` (`toDomainCalendarDate`) es la única forma segura de convertir una fecha civil a `Date` — nunca `new Date(value)` directo, porque desplaza el día en Guatemala (UTC−6).
+- Huecos documentados y **no resueltos unilateralmente desde móvil** (ver `PROGRESO-CONTRATO.md` para el detalle de cada uno): autenticación de personal en móvil, formato de `sku` y taxonomía de categorías (`product.category`/`amenity.category` son provisionales — en el dataset actual de móvil los 25 productos caen en un solo valor de categoría, lo que bloquea agrupar el menú por pestañas), la conexión real entre un pedido/solicitud entregado y su cargo a la cuenta (`charge_id` existe en el contrato, nada lo llena todavía, `order.charged_to_room` sigue siendo el mecanismo que móvil usa mientras tanto), y el campo "asignado a" que `service_request.assigned_role` necesita pero el contrato no define.
+
+`npm run validate:contract` (`scripts/validate-contract.ts`) verifica automáticamente que `src/data/db.ts` respeta las máquinas de estado, que las conversiones de monto son correctas, que las fechas civiles no se desplazan y que no hay referencias colgantes entre entidades.
+
+---
+
+_Este documento se actualiza en los tickets MOV-02, MOV-13 y MOV-22 conforme la arquitectura pasa de plan a código construido. Fuente original de estas decisiones: `docs/plan-app-movil.md`. La sección 8 se agregó en la reconciliación de contrato de 2026-09._
