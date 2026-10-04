@@ -1,4 +1,9 @@
-import type { OrderStatus, RoomStatus, ServiceRequestStatus } from '@/shared/constants/statuses';
+import type {
+  OrderStatus,
+  RoomHousekeepingStatus,
+  RoomStatus,
+  ServiceRequestStatus,
+} from '@/shared/constants/statuses';
 
 /**
  * Paleta de colores — PMS Hoteles Boutique.
@@ -66,15 +71,23 @@ export const statusColors = {
     completed: { background: colors.state.success, text: colors.white },
     rejected: { background: colors.state.danger, text: colors.white },
   },
+  /** Limpieza (`Room.housekeepingStatus`). */
   room: {
     dirty: { background: colors.state.warning, text: colors.brand[900] },
     cleaning: { background: colors.state.info, text: colors.white },
     clean: { background: colors.state.success, text: colors.white },
     inspected: { background: colors.brand[300], text: colors.brand[900] },
-    blocked: { background: colors.state.muted, text: colors.white },
+  },
+  /** Ocupación (`Room.status`), de solo lectura para Housekeeping. */
+  roomOccupancy: {
+    available: { background: colors.state.success, text: colors.white },
+    occupied: { background: colors.state.info, text: colors.white },
+    maintenance: { background: colors.state.warning, text: colors.brand[900] },
+    outOfService: { background: colors.state.muted, text: colors.white },
   },
 } as const satisfies {
   order: Record<OrderStatus, StatusColorToken>;
   serviceRequest: Record<ServiceRequestStatus, StatusColorToken>;
-  room: Record<RoomStatus, StatusColorToken>;
+  room: Record<RoomHousekeepingStatus, StatusColorToken>;
+  roomOccupancy: Record<RoomStatus, StatusColorToken>;
 };

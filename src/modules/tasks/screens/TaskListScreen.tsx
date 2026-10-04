@@ -54,6 +54,12 @@ export interface TaskListScreenConfig {
   emptyDescription?: string;
   emptyIcon?: string;
   searchPlaceholder?: string;
+  /**
+   * `oldestFirst` (por defecto): por antigüedad de creación, la más antigua
+   * primero. `asProvided`: respeta el orden que entrega `fetchTasks` (ej. un
+   * historial ya ordenado por el servicio).
+   */
+  sort?: 'oldestFirst' | 'asProvided';
 }
 
 export interface TaskListScreenProps {
@@ -119,10 +125,12 @@ export function TaskListScreen({ fetchTasks, config = {}, onTaskPress }: TaskLis
 
   const statusOptions = useMemo(() => buildStatusOptions(state.tasks), [state.tasks]);
 
+  const sortOrder = config.sort ?? 'oldestFirst';
+
   const visibleTasks = useMemo(() => {
     const search = filters.search.trim().toLowerCase();
 
-    return state.tasks
+    const filtered = state.tasks
       .filter((task) => filters.status === 'all' || task.status === filters.status)
       .filter((task) => {
         if (!search) return true;
@@ -131,9 +139,11 @@ export function TaskListScreen({ fetchTasks, config = {}, onTaskPress }: TaskLis
           task.description.toLowerCase().includes(search) ||
           (task.roomLabel?.toLowerCase().includes(search) ?? false)
         );
-      })
-      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-  }, [state.tasks, filters]);
+      });
+
+    if (sortOrder === 'asProvided') return filtered;
+    return filtered.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  }, [state.tasks, filters, sortOrder]);
 
   if (state.status === 'loading') {
     return <LoadingState message="Cargando tareas..." />;
