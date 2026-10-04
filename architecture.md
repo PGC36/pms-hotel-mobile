@@ -61,6 +61,15 @@ La pantalla que llama a `getPendingOrders()` nunca sabe que, hoy, el dato viene 
 
 **Ninguna pantalla ni componente importa directamente de `src/data/`.** Todo pasa por un servicio. Esta regla es la que hace migrable el proyecto: es la línea que separa "cambiar el origen del dato" de "reescribir la app".
 
+### Origen actual de los datos
+
+Desde MOV-09 conviven dos orígenes, siempre detrás de un servicio:
+
+- **API real:** `housekeeping.service.ts` obtiene y transiciona habitaciones con `apiClient` (`shared/services/api-client.ts`), solo con `GET /housekeeping/rooms`, `GET /housekeeping/rooms/{roomId}` y `POST /housekeeping/rooms/{roomId}/start|complete|inspect`. Su `RoomDTO` refleja el wire real del backend (camelCase), y el servicio traduce los errores HTTP a `HousekeepingServiceError` con mensajes seguros para la UI.
+- **Mock (`db.ts`):** todo lo que aún no tiene endpoint autorizado. En Housekeeping son las solicitudes de limpieza y artículos (`housekeeping-task.service.ts`, que adapta `ServiceRequestModel` a `TaskModel`), los reportes de desperfectos (`issue-report.service.ts`) y el historial propio (`housekeepingTaskCompletionsDB`). Pasarlos a la API cambiará solo esos servicios.
+
+`apiClient` se construye con `createHttpClient` (`http-client.ts`), con la base `EXPO_PUBLIC_API_BASE_URL` (`.env.local`, ver `.env.example`) y `getAuthToken` (`auth-token.ts`). Si hay token, se envía como `Authorization: Bearer`. Sin base URL, cada llamada falla con `ApiConfigError` en lugar de pedir una URL inválida. Los servicios no saben de dónde sale el token. **El login de personal sigue siendo mock**, y obtener el token del backend (`/auth/login`) queda para un ticket posterior.
+
 ---
 
 ## 3. Módulos de doble audiencia
@@ -85,9 +94,14 @@ Order:          pending → accepted → preparing → ready → onTheWay → de
 ServiceRequest: pending → accepted → inProgress → completed
                 pending → rejected
 
-Room:           dirty → cleaning → clean → inspected
-                cualquiera → blocked (mantenimiento)
+Room (limpieza, housekeepingStatus):
+                dirty → cleaning → clean → inspected
 ```
+
+`Room` tiene dos estados separados (MOV-09):
+
+- **`housekeepingStatus`** (limpieza): lo transiciona Housekeeping con `ROOM_HOUSEKEEPING_STATUS_TRANSITIONS`. Solo existen las tres transiciones que expone el backend (`start`, `complete`, `inspect`); no hay `blocked` ni transiciones inversas. El backend devuelve una habitación a `dirty` al hacer checkout.
+- **`status`** (ocupación: `available | occupied | maintenance | outOfService`): lo controla la web (recepción). Para la app es de solo lectura, así que no tiene tabla de transiciones en `statuses.ts`.
 
 ---
 
@@ -131,7 +145,9 @@ pms-hotel-mobile/
 │   │   │   └── permissions.ts
 │   │   ├── dtos/pagination.dto.ts
 │   │   ├── services/
-│   │   │   ├── http-client.ts           # wrapper de fetch, listo para API real
+│   │   │   ├── http-client.ts           # wrapper de fetch (Bearer opcional, 204/cuerpo vacío)
+│   │   │   ├── api-client.ts            # instancia compartida: EXPO_PUBLIC_API_BASE_URL + token
+│   │   │   ├── auth-token.ts            # get/set/clear del token sobre storage.ts
 │   │   │   └── delay.ts                 # latencia simulada
 │   │   ├── theme/{colors.ts, typography.ts, spacing.ts}
 │   │   └── utils/{formatters.ts, date.ts}
@@ -167,16 +183,16 @@ Cada módulo de dominio sigue internamente el patrón `dtos/ → models/ → map
 
 ## 7. Decisiones técnicas
 
-| Decisión               | Elección                                                                           | Motivo                                                                                                                                                                                                                                                                            |
-| ---------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Framework              | React Native con **Expo (managed)**                                                | Sin módulos nativos; evita configuración de Android Studio                                                                                                                                                                                                                        |
-| Lenguaje               | **TypeScript**                                                                     | Con datos dummy es lo único que detecta desajustes entre datos y pantallas                                                                                                                                                                                                        |
-| Navegación             | **React Navigation**                                                               | Navegador raíz condicional por tipo de sesión                                                                                                                                                                                                                                     |
-| Estado global          | **Context + useReducer**                                                           | Redux es desproporcionado para este alcance                                                                                                                                                                                                                                       |
-| Datos                  | **100 % dummy** en `src/data/db.ts`                                                | No hay backend en esta etapa                                                                                                                                                                                                                                                      |
-| Acceso a datos         | Exclusivamente por servicios de módulo                                             | Ver regla de oro (sección 2)                                                                                                                                                                                                                                                      |
-| Repositorio            | **Uno solo**, una app                                                              | Ver sección 1                                                                                                                                                                                                                                                                     |
-| Persistencia de sesión | `@react-native-async-storage/async-storage` detrás de `shared/services/storage.ts` | Datos no sensibles (qué sesión estaba activa); ningún consumidor importa AsyncStorage directamente, igual que `http-client.ts` con `fetch`. **Revisar cuando existan tokens de sesión reales contra un backend** — ahí probablemente corresponda `expo-secure-store` en su lugar. |
+| Decisión               | Elección                                                                                                | Motivo                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ---------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework              | React Native con **Expo (managed)**                                                                     | Sin módulos nativos; evita configuración de Android Studio                                                                                                                                                                                                                                                                                                                                                                                |
+| Lenguaje               | **TypeScript**                                                                                          | Con datos dummy es lo único que detecta desajustes entre datos y pantallas                                                                                                                                                                                                                                                                                                                                                                |
+| Navegación             | **React Navigation**                                                                                    | Navegador raíz condicional por tipo de sesión                                                                                                                                                                                                                                                                                                                                                                                             |
+| Estado global          | **Context + useReducer**                                                                                | Redux es desproporcionado para este alcance                                                                                                                                                                                                                                                                                                                                                                                               |
+| Datos                  | **Mixto:** API real para las habitaciones de Housekeeping (MOV-09); el resto, dummy en `src/data/db.ts` | Se integra cada operación cuando el backend expone un endpoint autorizado; mientras tanto, mock detrás del mismo servicio (ver sección 2)                                                                                                                                                                                                                                                                                                 |
+| Acceso a datos         | Exclusivamente por servicios de módulo                                                                  | Ver regla de oro (sección 2)                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Repositorio            | **Uno solo**, una app                                                                                   | Ver sección 1                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Persistencia de sesión | `@react-native-async-storage/async-storage` detrás de `shared/services/storage.ts`                      | Datos no sensibles (qué sesión estaba activa); ningún consumidor importa AsyncStorage directamente, igual que `http-client.ts` con `fetch`. **Revisar cuando existan tokens de sesión reales contra un backend** — ahí probablemente corresponda `expo-secure-store` en su lugar. Desde MOV-09, `auth-token.ts` guarda ahí el token de la API (clave `pms.authToken`); el cambio a almacenamiento cifrado queda contenido en ese archivo. |
 
 ---
 

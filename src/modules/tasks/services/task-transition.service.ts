@@ -1,10 +1,10 @@
 import {
   isValidTransition,
   ORDER_STATUS_TRANSITIONS,
-  ROOM_STATUS_TRANSITIONS,
+  ROOM_HOUSEKEEPING_STATUS_TRANSITIONS,
   SERVICE_REQUEST_STATUS_TRANSITIONS,
   type OrderStatus,
-  type RoomStatus,
+  type RoomHousekeepingStatus,
   type ServiceRequestStatus,
 } from '@/shared/constants/statuses';
 
@@ -43,6 +43,10 @@ export function canTransitionServiceRequest(
   return isValidTransition(SERVICE_REQUEST_STATUS_TRANSITIONS, from, to);
 }
 
-export function canTransitionRoom(from: RoomStatus, to: RoomStatus): boolean {
-  return isValidTransition(ROOM_STATUS_TRANSITIONS, from, to);
+/** Valida solo la limpieza (`housekeepingStatus`); la ocupación de Room es de solo lectura. */
+export function canTransitionRoom(
+  from: RoomHousekeepingStatus,
+  to: RoomHousekeepingStatus,
+): boolean {
+  return isValidTransition(ROOM_HOUSEKEEPING_STATUS_TRANSITIONS, from, to);
 }

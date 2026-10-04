@@ -4,8 +4,8 @@ Aplicación móvil del Property Management System para hoteles boutique.
 Construida con React Native y Expo.
 
 > **Estado:** en desarrollo · Fase 0 (base del proyecto)
-> Este repositorio contiene únicamente el frontend. No hay backend en esta etapa:
-> todos los datos son simulados.
+> Este repositorio contiene únicamente el frontend. Las habitaciones de Limpieza
+> (MOV-09) ya consumen el backend real; el resto de los datos sigue simulado.
 
 ---
 
@@ -35,7 +35,9 @@ pantallas del personal, y viceversa.
 - **TypeScript**
 - **React Navigation** — navegador raíz condicional por tipo de sesión
 - **Context + useReducer** para estado global
-- Datos 100 % simulados en `src/data/db.ts`
+- Datos simulados en `src/data/db.ts`, salvo lo ya integrado con la API real
+  (habitaciones de Limpieza), que requiere `EXPO_PUBLIC_API_BASE_URL` en un
+  `.env.local` no versionado (ver `.env.example`)
 
 ## Requisitos
 
@@ -71,7 +73,7 @@ src/
 ├── navigation/     # RootNavigator y navegadores por tipo de sesión (Auth | Staff | Guest)
 ├── modules/        # un módulo por dominio: dtos/ → models/ → mappers/ → services/ → screens/
 ├── shared/         # componentes, tema, constantes y utilidades reutilizables entre módulos
-├── data/           # "BD" simulada (db.ts) — no hay backend en esta etapa
+├── data/           # "BD" simulada (db.ts) para lo que aún no tiene endpoint real
 └── hooks/          # hooks compartidos entre módulos
 ```
 

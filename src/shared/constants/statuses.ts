@@ -91,26 +91,41 @@ export const SERVICE_REQUEST_STATUS_LABELS: Record<ServiceRequestStatus, string>
 };
 
 // ---------------------------------------------------------------------------
-// Room (estado operativo de limpieza de la habitación)
+// Room — ocupación (`Room.status`)
 // ---------------------------------------------------------------------------
 
-export const ROOM_STATUSES = ['dirty', 'cleaning', 'clean', 'inspected', 'blocked'] as const;
+/**
+ * Estado operativo/ocupación de la habitación. Lo controla la web
+ * (recepción); para Housekeeping es de solo lectura, por eso no tiene tabla
+ * de transiciones aquí (MOV-09). El DTO usa `out_of_service`; el mapper lo
+ * traduce a `outOfService`, igual que `onTheWay`/`inProgress`.
+ */
+export const ROOM_STATUSES = ['available', 'occupied', 'maintenance', 'outOfService'] as const;
 
 export type RoomStatus = (typeof ROOM_STATUSES)[number];
 
+// ---------------------------------------------------------------------------
+// Room — limpieza (`Room.housekeepingStatus`)
+// ---------------------------------------------------------------------------
+
+export const ROOM_HOUSEKEEPING_STATUSES = ['dirty', 'cleaning', 'clean', 'inspected'] as const;
+
+export type RoomHousekeepingStatus = (typeof ROOM_HOUSEKEEPING_STATUSES)[number];
+
 /**
  * dirty → cleaning → clean → inspected
- * cualquiera → blocked (mantenimiento)
- * blocked → dirty: una vez resuelto el mantenimiento, la habitación vuelve
- * al ciclo de limpieza normal. No está en architecture.md explícitamente,
- * pero sin esta salida una habitación bloqueada nunca podría recuperarse.
+ * Solo las transiciones que el backend expone (`start`, `complete`,
+ * `inspect` — MOV-09). Sin `clean → dirty`, `inspected → dirty` ni
+ * `blocked`: no existe una operación autorizada que las respalde.
  */
-export const ROOM_STATUS_TRANSITIONS: Record<RoomStatus, RoomStatus[]> = {
-  dirty: ['cleaning', 'blocked'],
-  cleaning: ['clean', 'blocked'],
-  clean: ['inspected', 'dirty', 'blocked'],
-  inspected: ['dirty', 'blocked'],
-  blocked: ['dirty'],
+export const ROOM_HOUSEKEEPING_STATUS_TRANSITIONS: Record<
+  RoomHousekeepingStatus,
+  RoomHousekeepingStatus[]
+> = {
+  dirty: ['cleaning'],
+  cleaning: ['clean'],
+  clean: ['inspected'],
+  inspected: [],
 };
 
 // ---------------------------------------------------------------------------

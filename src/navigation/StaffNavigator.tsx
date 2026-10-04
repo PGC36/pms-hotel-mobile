@@ -4,6 +4,7 @@ import { useAuth } from '@/modules/auth/context/AuthContext';
 import { STAFF_ROLES } from '@/shared/constants/roles';
 import { ComingSoonScreen } from '@/shared/screens/ComingSoonScreen';
 
+import { HousekeepingNavigator } from './HousekeepingNavigator';
 import type { StaffTabParamList } from './routes';
 
 const Tab = createBottomTabNavigator<StaffTabParamList>();
@@ -22,9 +23,12 @@ export function StaffNavigator() {
   return (
     <Tab.Navigator>
       {role === STAFF_ROLES.HOUSEKEEPING && (
-        <Tab.Screen name="Housekeeping" options={{ title: 'Limpieza' }}>
-          {() => <ComingSoonScreen title="Limpieza" ticket="MOV-09" />}
-        </Tab.Screen>
+        <Tab.Screen
+          name="Housekeeping"
+          component={HousekeepingNavigator}
+          // El stack interno ya muestra su propio encabezado.
+          options={{ title: 'Limpieza', headerShown: false }}
+        />
       )}
       {role === STAFF_ROLES.ROOM_SERVICE && (
         <Tab.Screen name="RoomService" options={{ title: 'Room Service' }}>

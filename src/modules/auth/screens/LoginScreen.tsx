@@ -34,14 +34,18 @@ export function LoginScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Posada del Ceibo</Text>
-        <Text style={styles.subtitle}>Ingreso de personal</Text>
+        {/* Misma marca visible que la web: AURORA · HOTEL & RESORT. */}
+        <Text style={styles.title} accessibilityLabel="Aurora Hotel & Resort">
+          AURORA
+        </Text>
+        <Text style={styles.tagline}>HOTEL & RESORT</Text>
+        <Text style={styles.subtitle}>Acceso del personal</Text>
       </View>
 
       <View style={styles.form}>
         <Input
           label="Correo"
-          placeholder="nombre@posadadelceibo.gt"
+          placeholder="nombre@hotelboutique.test"
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="email-address"
@@ -89,6 +93,10 @@ const styles = StyleSheet.create({
   title: {
     ...typography.display,
     color: colors.text.primary,
+  },
+  tagline: {
+    ...typography.caption,
+    color: colors.brand[400],
   },
   subtitle: {
     ...typography.body,
