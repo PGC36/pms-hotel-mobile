@@ -1,8 +1,10 @@
 import {
+  CONCIERGE_REQUEST_STATUS_TRANSITIONS,
   isValidTransition,
   ORDER_STATUS_TRANSITIONS,
   ROOM_HOUSEKEEPING_STATUS_TRANSITIONS,
   SERVICE_REQUEST_STATUS_TRANSITIONS,
+  type ConciergeRequestStatus,
   type OrderStatus,
   type RoomHousekeepingStatus,
   type ServiceRequestStatus,
@@ -41,6 +43,13 @@ export function canTransitionServiceRequest(
   to: ServiceRequestStatus,
 ): boolean {
   return isValidTransition(SERVICE_REQUEST_STATUS_TRANSITIONS, from, to);
+}
+
+export function canTransitionConciergeRequest(
+  from: ConciergeRequestStatus,
+  to: ConciergeRequestStatus,
+): boolean {
+  return isValidTransition(CONCIERGE_REQUEST_STATUS_TRANSITIONS, from, to);
 }
 
 /** Valida solo la limpieza (`housekeepingStatus`); la ocupación de Room es de solo lectura. */

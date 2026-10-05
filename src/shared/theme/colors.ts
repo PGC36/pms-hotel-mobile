@@ -1,4 +1,5 @@
 import type {
+  ConciergeRequestStatus,
   OrderStatus,
   RoomHousekeepingStatus,
   RoomStatus,
@@ -71,6 +72,15 @@ export const statusColors = {
     completed: { background: colors.state.success, text: colors.white },
     rejected: { background: colors.state.danger, text: colors.white },
   },
+  /** Conserjería (MOV-11): mismos colores que `serviceRequest` más `cancelled`, igual que en pedidos. */
+  conciergeRequest: {
+    pending: { background: colors.sand[300], text: colors.brand[900] },
+    accepted: { background: colors.state.info, text: colors.white },
+    inProgress: { background: colors.state.warning, text: colors.brand[900] },
+    completed: { background: colors.state.success, text: colors.white },
+    rejected: { background: colors.state.danger, text: colors.white },
+    cancelled: { background: colors.state.danger, text: colors.white },
+  },
   /** Limpieza (`Room.housekeepingStatus`). */
   room: {
     dirty: { background: colors.state.warning, text: colors.brand[900] },
@@ -88,6 +98,7 @@ export const statusColors = {
 } as const satisfies {
   order: Record<OrderStatus, StatusColorToken>;
   serviceRequest: Record<ServiceRequestStatus, StatusColorToken>;
+  conciergeRequest: Record<ConciergeRequestStatus, StatusColorToken>;
   room: Record<RoomHousekeepingStatus, StatusColorToken>;
   roomOccupancy: Record<RoomStatus, StatusColorToken>;
 };

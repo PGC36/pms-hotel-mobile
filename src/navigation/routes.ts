@@ -13,7 +13,7 @@ export type AuthStackParamList = {
 export type StaffTabParamList = {
   Housekeeping: NavigatorScreenParams<HousekeepingStackParamList> | undefined;
   RoomService: NavigatorScreenParams<RoomServiceStackParamList> | undefined;
-  Concierge: undefined;
+  Concierge: NavigatorScreenParams<ConciergeStackParamList> | undefined;
 };
 
 /**
@@ -47,6 +47,24 @@ export type RoomServiceStackParamList = {
   Menu: undefined;
   /** Pedidos entregados, rechazados o cancelados (historial del equipo). */
   History: undefined;
+};
+
+/**
+ * Stack interno de la única pestaña de Conserjería del personal (MOV-11).
+ * La vista por habitación y el historial viven aquí, no como pestañas.
+ */
+export type ConciergeStackParamList = {
+  /** Solicitudes activas (pending/accepted/inProgress) sobre la bandeja genérica de `tasks`. */
+  ConciergeInbox: undefined;
+  /** Solo el id: el detalle pide la solicitud fresca al servicio. */
+  ConciergeRequestDetail: { requestId: string };
+  /**
+   * Sin parámetros: habitaciones con solicitudes activas. Con `roomKey`: las
+   * solicitudes activas de esa habitación (`roomLabel` solo se muestra).
+   */
+  RequestsByRoom: { roomKey: string; roomLabel: string } | undefined;
+  /** Solicitudes completadas, rechazadas o canceladas (historial del equipo). */
+  ConciergeHistory: undefined;
 };
 
 /** Rutas de `GuestNavigator` — declarado en MOV-06, poblado desde MOV-15 en adelante. */

@@ -7,8 +7,8 @@ import {
 import { StaffSessionBar } from '@/modules/auth/components/StaffSessionBar';
 import { useAuth } from '@/modules/auth/context/AuthContext';
 import { STAFF_ROLES } from '@/shared/constants/roles';
-import { ComingSoonScreen } from '@/shared/screens/ComingSoonScreen';
 
+import { ConciergeNavigator } from './ConciergeNavigator';
 import { HousekeepingNavigator } from './HousekeepingNavigator';
 import { RoomServiceNavigator } from './RoomServiceNavigator';
 import type { StaffTabParamList } from './routes';
@@ -59,9 +59,12 @@ export function StaffNavigator() {
         />
       )}
       {role === STAFF_ROLES.CONCIERGE && (
-        <Tab.Screen name="Concierge" options={{ title: 'Conserjería' }}>
-          {() => <ComingSoonScreen title="Conserjería" ticket="MOV-11" />}
-        </Tab.Screen>
+        <Tab.Screen
+          name="Concierge"
+          component={ConciergeNavigator}
+          // El stack interno ya muestra su propio encabezado.
+          options={{ title: 'Conserjería', headerShown: false }}
+        />
       )}
     </Tab.Navigator>
   );

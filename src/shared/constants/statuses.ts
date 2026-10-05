@@ -53,7 +53,7 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// ServiceRequest (solicitudes de limpieza, artículos y conserjería)
+// ServiceRequest (solicitudes de limpieza y artículos — mock de MOV-09)
 // ---------------------------------------------------------------------------
 
 export const SERVICE_REQUEST_STATUSES = [
@@ -90,6 +90,54 @@ export const SERVICE_REQUEST_STATUS_LABELS: Record<ServiceRequestStatus, string>
   inProgress: 'En progreso',
   completed: 'Completada',
   rejected: 'Rechazada',
+};
+
+// ---------------------------------------------------------------------------
+// ConciergeRequest (solicitudes de conserjería, API real — MOV-11)
+// ---------------------------------------------------------------------------
+
+/**
+ * Máquina propia de conserjería, separada de `ServiceRequest` (que sigue
+ * siendo el mock de Limpieza en MOV-09) para no darle a Limpieza estados ni
+ * acciones que su mock no soporta. El DTO usa `in_progress`; el mapper lo
+ * traduce a `inProgress`.
+ */
+export const CONCIERGE_REQUEST_STATUSES = [
+  'pending',
+  'accepted',
+  'inProgress',
+  'completed',
+  'rejected',
+  'cancelled',
+] as const;
+
+export type ConciergeRequestStatus = (typeof CONCIERGE_REQUEST_STATUSES)[number];
+
+/**
+ * pending → accepted → inProgress → completed
+ * pending → rejected (rechazar solo antes de aceptar)
+ * pending | accepted | inProgress → cancelled
+ * Igual que `ConciergeRequestServiceImpl.TRANSITIONS` del backend.
+ */
+export const CONCIERGE_REQUEST_STATUS_TRANSITIONS: Record<
+  ConciergeRequestStatus,
+  ConciergeRequestStatus[]
+> = {
+  pending: ['accepted', 'rejected', 'cancelled'],
+  accepted: ['inProgress', 'cancelled'],
+  inProgress: ['completed', 'cancelled'],
+  completed: [],
+  rejected: [],
+  cancelled: [],
+};
+
+export const CONCIERGE_REQUEST_STATUS_LABELS: Record<ConciergeRequestStatus, string> = {
+  pending: 'Pendiente',
+  accepted: 'Aceptado',
+  inProgress: 'En atención',
+  completed: 'Completado',
+  rejected: 'Rechazado',
+  cancelled: 'Cancelado',
 };
 
 // ---------------------------------------------------------------------------
