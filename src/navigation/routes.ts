@@ -12,7 +12,7 @@ export type AuthStackParamList = {
  */
 export type StaffTabParamList = {
   Housekeeping: NavigatorScreenParams<HousekeepingStackParamList> | undefined;
-  RoomService: undefined;
+  RoomService: NavigatorScreenParams<RoomServiceStackParamList> | undefined;
   Concierge: undefined;
 };
 
@@ -31,6 +31,21 @@ export type HousekeepingStackParamList = {
   /** `roomNumber` solo para mostrarlo; el reporte se asocia por `roomId`. */
   ReportIssue: { roomId: string; roomNumber: string };
   /** Tareas completadas por el usuario en sesión. */
+  History: undefined;
+};
+
+/**
+ * Stack interno de la única pestaña de Room Service del personal (MOV-10).
+ * Menú e historial viven aquí, no como pestañas nuevas de `StaffNavigator`.
+ */
+export type RoomServiceStackParamList = {
+  /** Pedidos no terminales sobre la bandeja genérica de `tasks`. */
+  OrderInbox: undefined;
+  /** Solo el id: el detalle pide el pedido fresco al servicio. */
+  OrderDetail: { orderId: string };
+  /** Menú de solo consulta, agrupado por categoría. */
+  Menu: undefined;
+  /** Pedidos entregados, rechazados o cancelados (historial del equipo). */
   History: undefined;
 };
 

@@ -21,6 +21,8 @@ export interface StatusStepperProps {
   mode?: StatusStepperMode;
   onSelectStatus?: (next: TaskStatus) => void;
   disabled?: boolean;
+  /** Texto del botón que lleva a cada estado; por defecto, el nombre del estado destino. */
+  getActionLabel?: (next: TaskStatus) => string;
 }
 
 const NEGATIVE_TERMINAL_STATUSES = new Set<TaskStatus>(['rejected', 'cancelled']);
@@ -44,6 +46,7 @@ export function StatusStepper({
   mode = 'interactive',
   onSelectStatus,
   disabled = false,
+  getActionLabel,
 }: StatusStepperProps) {
   const nextStatuses = getValidNextStatuses(entityType, status);
 
@@ -55,7 +58,7 @@ export function StatusStepper({
           {nextStatuses.map((next) => (
             <Button
               key={next}
-              label={getStatusLabel(entityType, next)}
+              label={getActionLabel?.(next) ?? getStatusLabel(entityType, next)}
               variant={getButtonVariant(entityType, next)}
               disabled={disabled}
               onPress={() => onSelectStatus?.(next)}

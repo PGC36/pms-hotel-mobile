@@ -36,7 +36,7 @@ pantallas del personal, y viceversa.
 - **React Navigation** — navegador raíz condicional por tipo de sesión
 - **Context + useReducer** para estado global
 - Datos simulados en `src/data/db.ts`, salvo lo ya integrado con la API real
-  (habitaciones de Limpieza), que requiere `EXPO_PUBLIC_API_BASE_URL` en un
+  (habitaciones de Limpieza y Room Service del personal), que requiere `EXPO_PUBLIC_API_BASE_URL` en un
   `.env.local` no versionado (ver `.env.example`)
 
 ## Requisitos

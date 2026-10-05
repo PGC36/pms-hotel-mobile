@@ -1,13 +1,33 @@
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import {
+  BottomTabBar,
+  createBottomTabNavigator,
+  type BottomTabBarProps,
+} from '@react-navigation/bottom-tabs';
 
+import { StaffSessionBar } from '@/modules/auth/components/StaffSessionBar';
 import { useAuth } from '@/modules/auth/context/AuthContext';
 import { STAFF_ROLES } from '@/shared/constants/roles';
 import { ComingSoonScreen } from '@/shared/screens/ComingSoonScreen';
 
 import { HousekeepingNavigator } from './HousekeepingNavigator';
+import { RoomServiceNavigator } from './RoomServiceNavigator';
 import type { StaffTabParamList } from './routes';
 
 const Tab = createBottomTabNavigator<StaffTabParamList>();
+
+/**
+ * La barra de pestañas estándar, con la fila de cuenta ("Cerrar sesión")
+ * encima: un solo lugar compartido por todos los roles. Los encabezados no
+ * sirven para esto porque cada stack de módulo usa el suyo.
+ */
+function StaffTabBar(props: BottomTabBarProps) {
+  return (
+    <>
+      <StaffSessionBar />
+      <BottomTabBar {...props} />
+    </>
+  );
+}
 
 /**
  * Tabs de personal, filtradas por el rol de la sesión activa (MOV-06,
@@ -21,7 +41,7 @@ export function StaffNavigator() {
   const { role } = session.user;
 
   return (
-    <Tab.Navigator>
+    <Tab.Navigator tabBar={StaffTabBar}>
       {role === STAFF_ROLES.HOUSEKEEPING && (
         <Tab.Screen
           name="Housekeeping"
@@ -31,9 +51,12 @@ export function StaffNavigator() {
         />
       )}
       {role === STAFF_ROLES.ROOM_SERVICE && (
-        <Tab.Screen name="RoomService" options={{ title: 'Room Service' }}>
-          {() => <ComingSoonScreen title="Room Service" ticket="MOV-10" />}
-        </Tab.Screen>
+        <Tab.Screen
+          name="RoomService"
+          component={RoomServiceNavigator}
+          // El stack interno ya muestra su propio encabezado.
+          options={{ title: 'Room Service', headerShown: false }}
+        />
       )}
       {role === STAFF_ROLES.CONCIERGE && (
         <Tab.Screen name="Concierge" options={{ title: 'Conserjería' }}>

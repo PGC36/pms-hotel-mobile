@@ -33,29 +33,31 @@ Un huésped **nunca** instancia una pantalla de personal, y viceversa — no es 
 
 Cada dominio de datos (pedidos, habitaciones, reservas, etc.) se modela en cuatro capas con responsabilidades estrictas:
 
-| Capa        | Responsabilidad                                                                                                                                                               |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **DTO**     | La forma **cruda** del dato — hoy tal como vive en `src/data/db.ts`, mañana tal como llegará de la API real. Puede tener `snake_case`, campos redundantes, fechas como texto. |
-| **Mapper**  | Convierte DTO → Model. Es el **único** punto del código que conoce ambas formas.                                                                                              |
-| **Model**   | La forma de **dominio** que consume la UI: limpia, tipada, con `Date` reales y campos calculados.                                                                             |
-| **Service** | La única puerta de entrada a los datos. Siempre `async`, siempre devuelve Models, nunca DTOs. Simula latencia de red.                                                         |
+| Capa        | Responsabilidad                                                                                                                                                                        |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **DTO**     | La forma **cruda** del dato — tal como llega de la API real o, si aún no hay endpoint, como vive en `src/data/db.ts`. Puede tener `snake_case`, campos redundantes, fechas como texto. |
+| **Mapper**  | Convierte DTO → Model. Es el **único** punto del código que conoce ambas formas.                                                                                                       |
+| **Model**   | La forma de **dominio** que consume la UI: limpia, tipada, con `Date` reales y campos calculados.                                                                                      |
+| **Service** | La única puerta de entrada a los datos. Siempre `async`, siempre devuelve Models, nunca DTOs. Los que aún leen `db.ts` simulan latencia de red.                                        |
 
 ### Ejemplo real
 
 ```ts
-// src/modules/room-service/services/order.service.ts
-import { ordersDB } from '@/data/db';
-import { mapOrderDTOToModel } from '../mappers/order.mapper';
-import { delay } from '@/shared/services/delay';
-import type { OrderModel } from '../models/order.model';
-
-export const getPendingOrders = async (): Promise<OrderModel[]> => {
-  await delay(400); // simula latencia de red
-  return ordersDB.filter((order) => order.status === 'pending').map(mapOrderDTOToModel);
-};
+// src/modules/room-service/services/order.service.ts (MOV-10, API real)
+export async function getOrderById(id: string): Promise<OrderModel | null> {
+  try {
+    const order = await callRoomServiceApi(() =>
+      apiClient.get<OrderDTO | undefined>(orderPath(id)),
+    );
+    return order ? mapOrderDTOToModel(order) : null;
+  } catch (error) {
+    if (error instanceof RoomServiceServiceError && error.kind === 'notFound') return null;
+    throw error;
+  }
+}
 ```
 
-La pantalla que llama a `getPendingOrders()` nunca sabe que, hoy, el dato viene de un array en memoria. El día que exista backend, solo cambia lo que hay **dentro** del servicio (de leer `db.ts` a llamar `httpClient`) — ni el Model ni la pantalla se tocan.
+La pantalla que llama a `getOrderById()` no sabe de dónde viene el dato: hasta MOV-10 este mismo servicio leía `ordersDB` de `db.ts`, y pasar a la API real solo cambió lo que hay **dentro** del servicio (más el DTO y el mapper, para reflejar el wire real). La pantalla recibe siempre un `OrderModel`.
 
 ### Regla de oro
 
@@ -66,6 +68,7 @@ La pantalla que llama a `getPendingOrders()` nunca sabe que, hoy, el dato viene 
 Desde MOV-09 conviven dos orígenes, siempre detrás de un servicio:
 
 - **API real:** `housekeeping.service.ts` obtiene y transiciona habitaciones con `apiClient` (`shared/services/api-client.ts`), solo con `GET /housekeeping/rooms`, `GET /housekeeping/rooms/{roomId}` y `POST /housekeeping/rooms/{roomId}/start|complete|inspect`. Su `RoomDTO` refleja el wire real del backend (camelCase), y el servicio traduce los errores HTTP a `HousekeepingServiceError` con mensajes seguros para la UI.
+- **API real (MOV-10):** Room Service del personal no tiene mocks. `menu.service.ts` usa `GET /room-service/products` y `order.service.ts` usa `GET /room-service/orders`, `GET /room-service/orders/{orderId}`, `POST /room-service/orders/{orderId}/status` y `PATCH /room-service/orders/{orderId}/notes`; los errores se traducen a `RoomServiceServiceError`. El backend es la autoridad: valida las transiciones, descuenta y devuelve inventario y registra el cargo en el folio al entregar (`chargeId`). **El móvil no ejecuta lógica de inventario ni financiera**: solo pide la transición y muestra el pedido que devuelve el backend.
 - **Mock (`db.ts`):** todo lo que aún no tiene endpoint autorizado. En Housekeeping son las solicitudes de limpieza y artículos (`housekeeping-task.service.ts`, que adapta `ServiceRequestModel` a `TaskModel`), los reportes de desperfectos (`issue-report.service.ts`) y el historial propio (`housekeepingTaskCompletionsDB`). Pasarlos a la API cambiará solo esos servicios.
 
 `apiClient` se construye con `createHttpClient` (`http-client.ts`), con la base `EXPO_PUBLIC_API_BASE_URL` (`.env.local`, ver `.env.example`) y `getAuthToken` (`auth-token.ts`). Si hay token, se envía como `Authorization: Bearer`. Sin base URL, cada llamada falla con `ApiConfigError` en lugar de pedir una URL inválida. Los servicios no saben de dónde sale el token. **El login de personal sigue siendo mock**, y obtener el token del backend (`/auth/login`) queda para un ticket posterior.
@@ -89,7 +92,8 @@ Viven en `src/shared/constants/statuses.ts` y son la única fuente de verdad sob
 ```
 Order:          pending → accepted → preparing → ready → onTheWay → delivered
                 pending → rejected
-                cancelable mientras esté en pending o accepted
+                cancelable desde pending, accepted, preparing o ready
+                (desde onTheWay solo puede entregarse)
 
 ServiceRequest: pending → accepted → inProgress → completed
                 pending → rejected
@@ -183,16 +187,16 @@ Cada módulo de dominio sigue internamente el patrón `dtos/ → models/ → map
 
 ## 7. Decisiones técnicas
 
-| Decisión               | Elección                                                                                                | Motivo                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| ---------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Framework              | React Native con **Expo (managed)**                                                                     | Sin módulos nativos; evita configuración de Android Studio                                                                                                                                                                                                                                                                                                                                                                                |
-| Lenguaje               | **TypeScript**                                                                                          | Con datos dummy es lo único que detecta desajustes entre datos y pantallas                                                                                                                                                                                                                                                                                                                                                                |
-| Navegación             | **React Navigation**                                                                                    | Navegador raíz condicional por tipo de sesión                                                                                                                                                                                                                                                                                                                                                                                             |
-| Estado global          | **Context + useReducer**                                                                                | Redux es desproporcionado para este alcance                                                                                                                                                                                                                                                                                                                                                                                               |
-| Datos                  | **Mixto:** API real para las habitaciones de Housekeeping (MOV-09); el resto, dummy en `src/data/db.ts` | Se integra cada operación cuando el backend expone un endpoint autorizado; mientras tanto, mock detrás del mismo servicio (ver sección 2)                                                                                                                                                                                                                                                                                                 |
-| Acceso a datos         | Exclusivamente por servicios de módulo                                                                  | Ver regla de oro (sección 2)                                                                                                                                                                                                                                                                                                                                                                                                              |
-| Repositorio            | **Uno solo**, una app                                                                                   | Ver sección 1                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| Persistencia de sesión | `@react-native-async-storage/async-storage` detrás de `shared/services/storage.ts`                      | Datos no sensibles (qué sesión estaba activa); ningún consumidor importa AsyncStorage directamente, igual que `http-client.ts` con `fetch`. **Revisar cuando existan tokens de sesión reales contra un backend** — ahí probablemente corresponda `expo-secure-store` en su lugar. Desde MOV-09, `auth-token.ts` guarda ahí el token de la API (clave `pms.authToken`); el cambio a almacenamiento cifrado queda contenido en ese archivo. |
+| Decisión               | Elección                                                                                                                                     | Motivo                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework              | React Native con **Expo (managed)**                                                                                                          | Sin módulos nativos; evita configuración de Android Studio                                                                                                                                                                                                                                                                                                                                                                                |
+| Lenguaje               | **TypeScript**                                                                                                                               | Con datos dummy es lo único que detecta desajustes entre datos y pantallas                                                                                                                                                                                                                                                                                                                                                                |
+| Navegación             | **React Navigation**                                                                                                                         | Navegador raíz condicional por tipo de sesión                                                                                                                                                                                                                                                                                                                                                                                             |
+| Estado global          | **Context + useReducer**                                                                                                                     | Redux es desproporcionado para este alcance                                                                                                                                                                                                                                                                                                                                                                                               |
+| Datos                  | **Mixto:** API real para las habitaciones de Housekeeping (MOV-09) y Room Service del personal (MOV-10); el resto, dummy en `src/data/db.ts` | Se integra cada operación cuando el backend expone un endpoint autorizado; mientras tanto, mock detrás del mismo servicio (ver sección 2)                                                                                                                                                                                                                                                                                                 |
+| Acceso a datos         | Exclusivamente por servicios de módulo                                                                                                       | Ver regla de oro (sección 2)                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Repositorio            | **Uno solo**, una app                                                                                                                        | Ver sección 1                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Persistencia de sesión | `@react-native-async-storage/async-storage` detrás de `shared/services/storage.ts`                                                           | Datos no sensibles (qué sesión estaba activa); ningún consumidor importa AsyncStorage directamente, igual que `http-client.ts` con `fetch`. **Revisar cuando existan tokens de sesión reales contra un backend** — ahí probablemente corresponda `expo-secure-store` en su lugar. Desde MOV-09, `auth-token.ts` guarda ahí el token de la API (clave `pms.authToken`); el cambio a almacenamiento cifrado queda contenido en ese archivo. |
 
 ---
 

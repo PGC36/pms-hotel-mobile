@@ -17,15 +17,17 @@ interface State {
   status: 'loading' | 'error' | 'ready';
   tasks: TaskModel[];
   isRefreshing: boolean;
+  /** Lo que lanzó `fetchTasks`, para `config.getErrorDescription`. */
+  error: unknown;
 }
 
 type Action =
   | { type: 'FETCH_START' }
   | { type: 'FETCH_SUCCESS'; tasks: TaskModel[] }
-  | { type: 'FETCH_ERROR' }
+  | { type: 'FETCH_ERROR'; error: unknown }
   | { type: 'REFRESH_START' };
 
-const initialState: State = { status: 'loading', tasks: [], isRefreshing: false };
+const initialState: State = { status: 'loading', tasks: [], isRefreshing: false, error: null };
 
 /**
  * `dispatch` (no un setter de `useState`) para poder actualizar el estado
@@ -37,9 +39,9 @@ function reducer(state: State, action: Action): State {
     case 'FETCH_START':
       return { ...state, status: 'loading' };
     case 'FETCH_SUCCESS':
-      return { status: 'ready', tasks: action.tasks, isRefreshing: false };
+      return { status: 'ready', tasks: action.tasks, isRefreshing: false, error: null };
     case 'FETCH_ERROR':
-      return { ...state, status: 'error', isRefreshing: false };
+      return { ...state, status: 'error', isRefreshing: false, error: action.error };
     case 'REFRESH_START':
       return { ...state, isRefreshing: true };
     default:
@@ -60,6 +62,16 @@ export interface TaskListScreenConfig {
    * historial ya ordenado por el servicio).
    */
   sort?: 'oldestFirst' | 'asProvided';
+  /** Texto de carga; por defecto "Cargando tareas...". */
+  loadingMessage?: string;
+  /** Título del error; por defecto "No se pudieron cargar las tareas". */
+  errorTitle?: string;
+  /**
+   * Traduce el error de `fetchTasks` a un texto seguro para mostrar (ej. el
+   * mensaje de un error de servicio). Si no se define o devuelve `undefined`,
+   * se muestra el texto genérico de siempre.
+   */
+  getErrorDescription?: (error: unknown) => string | undefined;
 }
 
 export interface TaskListScreenProps {
@@ -98,8 +110,8 @@ export function TaskListScreen({ fetchTasks, config = {}, onTaskPress }: TaskLis
     try {
       const data = await fetchTasks();
       dispatch({ type: 'FETCH_SUCCESS', tasks: data });
-    } catch {
-      dispatch({ type: 'FETCH_ERROR' });
+    } catch (error) {
+      dispatch({ type: 'FETCH_ERROR', error });
     }
   }, [fetchTasks]);
 
@@ -146,14 +158,16 @@ export function TaskListScreen({ fetchTasks, config = {}, onTaskPress }: TaskLis
   }, [state.tasks, filters, sortOrder]);
 
   if (state.status === 'loading') {
-    return <LoadingState message="Cargando tareas..." />;
+    return <LoadingState message={config.loadingMessage ?? 'Cargando tareas...'} />;
   }
 
   if (state.status === 'error') {
     return (
       <ErrorState
-        title="No se pudieron cargar las tareas"
-        description="Revisa tu conexión e intenta de nuevo."
+        title={config.errorTitle ?? 'No se pudieron cargar las tareas'}
+        description={
+          config.getErrorDescription?.(state.error) ?? 'Revisa tu conexión e intenta de nuevo.'
+        }
         onRetry={retry}
       />
     );

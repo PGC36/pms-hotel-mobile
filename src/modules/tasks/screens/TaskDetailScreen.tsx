@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Input } from '@/shared/components';
@@ -24,6 +24,27 @@ export interface TaskDetailScreenProps {
   task: TaskModel;
   /** El servicio: aplica la transición y devuelve el `TaskModel` actualizado (MOV-09/10/11 lo arma por rol). */
   onUpdateStatus: (nextStatus: TaskStatus, options?: TaskDetailUpdateOptions) => Promise<TaskModel>;
+  /** Contenido propio del módulo (ej. productos de un pedido), entre el encabezado y las acciones. */
+  children?: ReactNode;
+  /**
+   * Texto de la acción que lleva a cada estado (ej. "Aceptar pedido"). Si se
+   * define, los botones y la confirmación usan la acción en vez del nombre
+   * del estado destino.
+   */
+  getActionLabel?: (nextStatus: TaskStatus) => string;
+  /**
+   * `false` oculta el campo genérico de observaciones y deja de enviarlas con
+   * cada transición (para módulos que las editan aparte). Por defecto `true`.
+   */
+  showNotesField?: boolean;
+  /**
+   * `true` (por defecto) muestra el nuevo estado antes de que responda el
+   * servicio y lo revierte si falla. `false` solo cambia el estado con la
+   * respuesta del servicio.
+   */
+  optimistic?: boolean;
+  /** Bloquea las acciones mientras el llamador hace otra operación sobre la tarea. */
+  disabled?: boolean;
 }
 
 const NEGATIVE_TERMINAL_STATUSES = new Set<TaskStatus>(['rejected', 'cancelled']);
@@ -34,13 +55,23 @@ const NEGATIVE_TERMINAL_STATUSES = new Set<TaskStatus>(['rejected', 'cancelled']
  * `TaskListScreen` en MOV-07 — no importa `ServiceRequestModel`/`OrderModel`
  * ni los servicios de dominio directamente.
  */
-export function TaskDetailScreen({ task: initialTask, onUpdateStatus }: TaskDetailScreenProps) {
+export function TaskDetailScreen({
+  task: initialTask,
+  onUpdateStatus,
+  children,
+  getActionLabel,
+  showNotesField = true,
+  optimistic = true,
+  disabled = false,
+}: TaskDetailScreenProps) {
   const [task, setTask] = useState(initialTask);
   const [notes, setNotes] = useState(initialTask.notes ?? '');
   const [pendingTransition, setPendingTransition] = useState<TaskStatus | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Un segundo toque antes del re-render no debe lanzar otra transición.
+  const inFlight = useRef(false);
 
   function handleSelectStatus(next: TaskStatus) {
     setErrorMessage(null);
@@ -58,59 +89,81 @@ export function TaskDetailScreen({ task: initialTask, onUpdateStatus }: TaskDeta
   }
 
   async function applyTransition(next: TaskStatus, options: TaskDetailUpdateOptions = {}) {
+    if (inFlight.current || disabled) return;
+    inFlight.current = true;
     const previousStatus = task.status;
     setIsUpdating(true);
     setErrorMessage(null);
     setPendingTransition(null);
-    setTask((current) => ({ ...current, status: next }));
+    if (optimistic) setTask((current) => ({ ...current, status: next }));
 
     try {
-      const updated = await onUpdateStatus(next, { ...options, notes: notes.trim() || undefined });
+      const updated = await onUpdateStatus(
+        next,
+        showNotesField ? { ...options, notes: notes.trim() || undefined } : options,
+      );
       setTask(updated);
       setNotes(updated.notes ?? '');
     } catch (error) {
-      setTask((current) => ({ ...current, status: previousStatus }));
+      if (optimistic) setTask((current) => ({ ...current, status: previousStatus }));
       setErrorMessage(
         error instanceof Error
           ? error.message
           : 'No se pudo actualizar el estado. Intenta de nuevo.',
       );
     } finally {
+      inFlight.current = false;
       setIsUpdating(false);
     }
   }
 
   const isRejecting = pendingTransition === 'rejected';
+  const pendingActionLabel =
+    pendingTransition && getActionLabel ? getActionLabel(pendingTransition) : null;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>{task.title}</Text>
-      <Text style={styles.description}>{task.description}</Text>
+      {task.description ? <Text style={styles.description}>{task.description}</Text> : null}
       <View style={styles.metaRow}>
         <Text style={styles.meta}>{task.roomLabel ?? 'Sin habitación asignada'}</Text>
         {task.meta ? <Text style={styles.meta}>{task.meta}</Text> : null}
         <Text style={styles.meta}>{formatElapsedTime(task.createdAt)}</Text>
       </View>
 
-      {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+      {children}
+
+      {errorMessage ? (
+        <Text style={styles.error} accessibilityRole="alert" accessibilityLiveRegion="polite">
+          {errorMessage}
+        </Text>
+      ) : null}
 
       <StatusStepper
         entityType={task.entityType}
         status={task.status}
         onSelectStatus={handleSelectStatus}
-        disabled={isUpdating || pendingTransition !== null}
+        disabled={isUpdating || disabled || pendingTransition !== null}
+        getActionLabel={getActionLabel}
       />
 
       {pendingTransition ? (
         <View style={styles.confirmPanel}>
           <Text style={styles.confirmTitle}>
-            ¿Confirmas marcar esta tarea como &quot;
-            {getStatusLabel(task.entityType, pendingTransition)}
-            &quot;? Esta acción no se puede deshacer.
+            {pendingActionLabel ? (
+              <>¿Confirmas &quot;{pendingActionLabel}&quot;? Esta acción no se puede deshacer.</>
+            ) : (
+              <>
+                ¿Confirmas marcar esta tarea como &quot;
+                {getStatusLabel(task.entityType, pendingTransition)}
+                &quot;? Esta acción no se puede deshacer.
+              </>
+            )}
           </Text>
           {isRejecting ? (
             <Input
               label="Motivo del rechazo"
+              accessibilityLabel="Motivo del rechazo (obligatorio)"
               placeholder="Explica por qué se rechaza"
               value={rejectionReason}
               onChangeText={setRejectionReason}
@@ -118,12 +171,16 @@ export function TaskDetailScreen({ task: initialTask, onUpdateStatus }: TaskDeta
             />
           ) : null}
           <View style={styles.confirmActions}>
-            <Button label="Cancelar" variant="secondary" onPress={cancelPendingTransition} />
             <Button
-              label="Confirmar"
+              label={pendingActionLabel ? 'Volver' : 'Cancelar'}
+              variant="secondary"
+              onPress={cancelPendingTransition}
+            />
+            <Button
+              label={pendingActionLabel ?? 'Confirmar'}
               variant={NEGATIVE_TERMINAL_STATUSES.has(pendingTransition) ? 'danger' : 'primary'}
               loading={isUpdating}
-              disabled={isRejecting && rejectionReason.trim().length === 0}
+              disabled={disabled || (isRejecting && rejectionReason.trim().length === 0)}
               onPress={() =>
                 void applyTransition(pendingTransition, {
                   rejectionReason: isRejecting ? rejectionReason.trim() : undefined,
@@ -134,14 +191,18 @@ export function TaskDetailScreen({ task: initialTask, onUpdateStatus }: TaskDeta
         </View>
       ) : null}
 
-      <Input
-        label="Observaciones"
-        placeholder="Agrega notas para el equipo..."
-        value={notes}
-        onChangeText={setNotes}
-        multiline
-      />
-      <Text style={styles.hint}>Se guardan junto con el próximo cambio de estado.</Text>
+      {showNotesField ? (
+        <>
+          <Input
+            label="Observaciones"
+            placeholder="Agrega notas para el equipo..."
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+          />
+          <Text style={styles.hint}>Se guardan junto con el próximo cambio de estado.</Text>
+        </>
+      ) : null}
     </ScrollView>
   );
 }

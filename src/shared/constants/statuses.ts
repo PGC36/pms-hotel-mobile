@@ -25,13 +25,15 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
 /**
  * pending → accepted → preparing → ready → onTheWay → delivered
  * pending → rejected
- * cancelable mientras esté en pending o accepted
+ * cancelable desde pending, accepted, preparing o ready; desde onTheWay solo
+ * puede entregarse. Igual que `POST /room-service/orders/{orderId}/status`
+ * del backend (MOV-10). El DTO usa `on_the_way`; el mapper lo traduce.
  */
 export const ORDER_STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   pending: ['accepted', 'rejected', 'cancelled'],
   accepted: ['preparing', 'cancelled'],
-  preparing: ['ready'],
-  ready: ['onTheWay'],
+  preparing: ['ready', 'cancelled'],
+  ready: ['onTheWay', 'cancelled'],
   onTheWay: ['delivered'],
   delivered: [],
   rejected: [],
@@ -42,7 +44,7 @@ export const ORDER_STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   pending: 'Pendiente',
   accepted: 'Aceptado',
-  preparing: 'Preparando',
+  preparing: 'En preparación',
   ready: 'Listo',
   onTheWay: 'En camino',
   delivered: 'Entregado',

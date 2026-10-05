@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react';
 
+import { clearAuthToken } from '@/shared/services/auth-token';
 import { getStorageJSON, removeStorageItem, setStorageJSON } from '@/shared/services/storage';
 
 import { getUserById, login as loginRequest } from '../services/auth.service';
@@ -93,9 +94,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await setStorageJSON<StoredSession>(SESSION_STORAGE_KEY, { type: 'guest', guestId, bookingId });
   }
 
+  /**
+   * Cierra la sesión por completo: primero el token de la API real, luego la
+   * sesión persistida y al final el estado en memoria. Si borrar algo falla,
+   * lanza y la sesión sigue abierta (el usuario puede reintentar), para no
+   * dejar una sesión a medias que al recargar combine un rol con el token de
+   * otro usuario.
+   */
   async function logout(): Promise<void> {
-    dispatch({ type: 'CLEAR_SESSION' });
+    await clearAuthToken();
     await removeStorageItem(SESSION_STORAGE_KEY);
+    dispatch({ type: 'CLEAR_SESSION' });
   }
 
   const value = useMemo<AuthContextValue>(

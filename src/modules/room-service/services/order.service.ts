@@ -1,69 +1,151 @@
-import { ordersDB } from '@/data/db';
-import { ORDER_STATUS_TRANSITIONS, type OrderStatus } from '@/shared/constants/statuses';
-import { delay } from '@/shared/services/delay';
-import { assertValidTransition } from '@/modules/tasks/services/task-transition.service';
+import { canTransitionOrder } from '@/modules/tasks/services/task-transition.service';
+import type { OrderStatus } from '@/shared/constants/statuses';
+import { apiClient } from '@/shared/services/api-client';
 
-import { mapOrderDTOToModel } from '../mappers/order.mapper';
-import type { OrderModel } from '../models/order.model';
+import type { OrderDTO, OrderStatusDTO } from '../dtos/order.dto';
+import { mapOrderDTOToModel, mapOrderStatusToDTO } from '../mappers/order.mapper';
+import {
+  buildRejectionNotes,
+  isTerminalOrderStatus,
+  ORDER_NOTES_MAX_LENGTH,
+  type OrderModel,
+} from '../models/order.model';
+import { callRoomServiceApi, RoomServiceServiceError } from './room-service-error';
 
-export class OrderNotFoundError extends Error {
-  constructor(id: string) {
-    super(`Pedido ${id} no encontrado.`);
-    this.name = 'OrderNotFoundError';
+/**
+ * Pedidos de Room Service contra la API real (`RoomServiceController`,
+ * MOV-10). El backend es la autoridad sobre las transiciones y hace todo lo
+ * que tiene efectos: descuenta inventario al aceptar, lo devuelve al cancelar
+ * y registra el cargo en el folio al entregar (`chargeId`). Este servicio
+ * solo pide la transición y devuelve el pedido tal como responde el backend;
+ * no calcula montos, existencias ni cargos.
+ */
+
+export interface OrderFilters {
+  status?: OrderStatus;
+  bookingId?: string;
+}
+
+function orderPath(id: string): string {
+  return `/room-service/orders/${encodeURIComponent(id)}`;
+}
+
+/** Del más reciente al más antiguo (orden del backend). */
+export async function getOrders(filters: OrderFilters = {}): Promise<OrderModel[]> {
+  const params = new URLSearchParams();
+  if (filters.bookingId) params.set('bookingId', filters.bookingId);
+  if (filters.status) params.set('status', mapOrderStatusToDTO(filters.status));
+  const query = params.toString();
+
+  const orders = await callRoomServiceApi(() =>
+    apiClient.get<OrderDTO[] | undefined>(`/room-service/orders${query ? `?${query}` : ''}`),
+  );
+  return (orders ?? []).map(mapOrderDTOToModel);
+}
+
+/** `null` si el pedido no existe (404). */
+export async function getOrderById(id: string): Promise<OrderModel | null> {
+  try {
+    const order = await callRoomServiceApi(() =>
+      apiClient.get<OrderDTO | undefined>(orderPath(id)),
+    );
+    return order ? mapOrderDTOToModel(order) : null;
+  } catch (error) {
+    if (error instanceof RoomServiceServiceError && error.kind === 'notFound') return null;
+    throw error;
   }
 }
 
 export interface UpdateOrderStatusOptions {
-  /** Obligatorio cuando `nextStatus` es `rejected` (HU-05: rechazar con motivo). */
+  /** Observaciones a guardar junto con la transición. Si se omite, el backend conserva las actuales. */
+  notes?: string;
+  /** Obligatorio cuando `nextStatus` es `rejected`. Se agrega a las observaciones (ver `buildRejectionNotes`). */
   rejectionReason?: string;
 }
 
-export async function getOrders(): Promise<OrderModel[]> {
-  await delay();
-  return ordersDB.map(mapOrderDTOToModel);
+interface UpdateOrderStatusBody {
+  status: OrderStatusDTO;
+  notes?: string;
 }
 
-export async function getOrderById(id: string): Promise<OrderModel | null> {
-  await delay();
-  const found = ordersDB.find((order) => order.id === id);
-  return found ? mapOrderDTOToModel(found) : null;
+/** El backend recorta las notas antes de validar `@Size(max = 1000)`. */
+function assertNotesLength(notes: string): void {
+  if (notes.trim().length > ORDER_NOTES_MAX_LENGTH) {
+    throw new RoomServiceServiceError(
+      'invalidInput',
+      undefined,
+      `Las observaciones no pueden superar ${ORDER_NOTES_MAX_LENGTH} caracteres.`,
+    );
+  }
 }
 
-/** Valida la transición contra `ORDER_STATUS_TRANSITIONS` antes de aplicarla. */
+/**
+ * `POST /room-service/orders/{orderId}/status`. Recibe el pedido tal como lo
+ * conoce la pantalla para no ofrecer transiciones obviamente inválidas
+ * (`ORDER_STATUS_TRANSITIONS`) ni perder sus observaciones al rechazar; si el
+ * pedido cambió en el servidor, el backend rechaza la transición (400).
+ */
 export async function updateOrderStatus(
-  id: string,
+  order: OrderModel,
   nextStatus: OrderStatus,
   options: UpdateOrderStatusOptions = {},
 ): Promise<OrderModel> {
-  await delay();
-
-  const order = ordersDB.find((o) => o.id === id);
-  if (!order) throw new OrderNotFoundError(id);
-
-  assertValidTransition(ORDER_STATUS_TRANSITIONS, order.status, nextStatus, 'Order');
-
-  if (nextStatus === 'rejected' && !options.rejectionReason) {
-    throw new Error('Se requiere un motivo para rechazar el pedido.');
+  if (!canTransitionOrder(order.status, nextStatus)) {
+    throw new RoomServiceServiceError('invalidTransition');
   }
 
-  const now = new Date().toISOString();
-  order.status = nextStatus;
-  order.updated_at = now;
-  if (options.rejectionReason) order.rejection_reason = options.rejectionReason;
-  if (nextStatus === 'delivered') order.delivered_at = now;
+  let notes = options.notes;
+  if (nextStatus === 'rejected') {
+    const reason = options.rejectionReason?.trim() ?? '';
+    if (!reason) {
+      throw new RoomServiceServiceError(
+        'invalidInput',
+        undefined,
+        'Escribe el motivo del rechazo.',
+      );
+    }
+    notes = buildRejectionNotes(options.notes ?? order.notes, reason);
+  }
 
-  return mapOrderDTOToModel(order);
+  if (notes !== undefined) assertNotesLength(notes);
+
+  const body: UpdateOrderStatusBody = { status: mapOrderStatusToDTO(nextStatus) };
+  if (notes !== undefined) body.notes = notes;
+
+  const updated = await callRoomServiceApi(() =>
+    apiClient.post<OrderDTO | undefined>(`${orderPath(order.id)}/status`, body),
+  );
+  if (updated) return mapOrderDTOToModel(updated);
+
+  // El backend responde con el pedido; si algún día respondiera sin cuerpo,
+  // se pide el detalle para no devolver un estado viejo.
+  const fresh = await getOrderById(order.id);
+  if (!fresh) throw new RoomServiceServiceError('notFound', 404);
+  return fresh;
 }
 
-/** HU-12: cargar el costo del pedido a la cuenta de la habitación. */
-export async function chargeOrderToRoom(id: string): Promise<OrderModel> {
-  await delay();
+/**
+ * `PATCH /room-service/orders/{orderId}/notes` (HU-11). Reemplaza por completo
+ * las observaciones con `notes`, tal como llega: un texto vacío las borra, así
+ * que la pantalla debe confirmarlo antes. No cambia el estado. Un pedido
+ * terminal conserva sus notas (p. ej. el motivo de rechazo) y no se envía.
+ */
+export async function updateOrderNotes(order: OrderModel, notes: string): Promise<OrderModel> {
+  if (isTerminalOrderStatus(order.status)) {
+    throw new RoomServiceServiceError(
+      'invalidInput',
+      undefined,
+      'Un pedido cerrado no admite cambios en sus observaciones.',
+    );
+  }
+  assertNotesLength(notes);
 
-  const order = ordersDB.find((o) => o.id === id);
-  if (!order) throw new OrderNotFoundError(id);
+  const updated = await callRoomServiceApi(() =>
+    apiClient.patch<OrderDTO | undefined>(`${orderPath(order.id)}/notes`, { notes }),
+  );
+  if (updated) return mapOrderDTOToModel(updated);
 
-  order.charged_to_room = true;
-  order.updated_at = new Date().toISOString();
-
-  return mapOrderDTOToModel(order);
+  const fresh = await getOrderById(order.id);
+  if (!fresh) throw new RoomServiceServiceError('notFound', 404);
+  return fresh;
 }
