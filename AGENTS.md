@@ -36,9 +36,14 @@ Guía para agentes de IA (Claude Code, Codex, Copilot, Cursor u otro) que trabaj
   - **Login:** `GuestLoginScreen.tsx` solicita email y contraseña, comunica con `loginGuest` (`auth.service.ts`), almacena el token JWT en `pms.authToken` y guarda la sesión (`guestId`, `bookingId`) sin almacenar datos de negocio como reservas o pagos en almacenamiento local.
   - **Manejo de Errores y Sesión:** errores 401/403 y falta de estadía activa son traducidos a mensajes en español mediante `GuestAuthServiceError`. Si la sesión o token expira, se limpian token y sesión para redirigir al login.
   - **Estadía de Huésped (Consumo de Endpoint Real):** `stay.service.ts` y `StayScreen.tsx` consumen `GET /guest/stay` con el token Bearer emitido, mostrando el resumen de la habitación, fechas de estadía, saldo en folio y permitiendo cerrar sesión con `StayHeader.tsx`.
-  - **Navegación:** `AuthNavigator` incluye `GuestLogin` como pantalla inicial accesible para huéspedes sin depender de código demo como flujo principal, manteniendo `LinkBooking` como opción secundaria de vinculación.
+- **AUTH-STAFF (Issue #21, JEPG321)**: autenticación de personal y seguridad de sesión contra el backend real (`/api/v1/auth`).
+  - **Login:** `LoginScreen.tsx` autentica contra `POST /auth/login` vía `loginStaff` (`auth.service.ts`), resolviendo el rol (`ROLE_HOUSEKEEPING`, `ROLE_ROOM_SERVICE`, `ROLE_CONCIERGE`) desde las `authorities` del token JWT. Se eliminó el uso de `usersDB` y credenciales mock.
+  - **Almacenamiento Seguro:** Los tokens de acceso y renovación (`accessToken`, `refreshToken`) usan `expo-secure-store` en iOS/Android. En Web se mantienen solo en memoria (no se persisten en AsyncStorage ni sobreviven una recarga). El almacenamiento no seguro (`pms.session`) solo persiste `{ type: 'staff', email }` sin credenciales ni datos de negocio.
+  - **Renovación y Cierre de Sesión:** Soporte para rotación de token vía `POST /auth/refresh` (`refreshStaffToken`) y revocación en servidor vía `POST /auth/logout` (`logoutStaff`). Si el token expira o el refresh falla, la sesión se limpia y se redirige al login sin mezclar sesiones.
+  - **Aislamiento de Rol:** `StaffNavigator` valida el rol resuelto y sólo expone las rutas permitidas para dicho rol.
 - El resto de pantallas y componentes de módulos de dominio siguen siendo placeholders vacíos — llegan en MOV-11 en adelante. No asumas que un archivo tiene contenido solo porque existe: verifica antes de editar.
 - Mantén esta sección al día cada vez que termines un ticket de Fase 0/1/2 — así el siguiente agente no tiene que reconstruir el estado leyendo commits.
+
 
 ## Comandos
 

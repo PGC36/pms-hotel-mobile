@@ -45,13 +45,14 @@ export function LoginScreen({ navigation }: Props) {
       <View style={styles.form}>
         <Input
           label="Correo"
-          placeholder="nombre@hotelboutique.test"
+          placeholder="personal@aurora.test"
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="email-address"
           value={email}
           onChangeText={setEmail}
         />
+
         <Input
           label="Contraseña"
           placeholder="••••••••"
