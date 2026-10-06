@@ -1,6 +1,12 @@
 import { extractStaffRoleFromAuthorities, decodeJwtPayload } from '../src/modules/auth/utils/jwt';
 import { restoreStaffAccessToken } from '../src/modules/auth/services/session-restore';
+import {
+  buildStaffUserFromToken,
+  createStaffAuthApi,
+} from '../src/modules/auth/services/staff-auth-api';
+import { AuthServiceError } from '../src/modules/auth/services/auth-error';
 import { STAFF_ROLES } from '../src/shared/constants/roles';
+import { HttpError } from '../src/shared/services/http-client';
 import {
   getWebSecureItem,
   removeWebSecureItem,
@@ -76,14 +82,80 @@ console.log('3. Probando manejo de token malformado...');
 assertEqual(decodeJwtPayload('token.invalido'), null, 'Token malformado retorna null');
 assertEqual(decodeJwtPayload(''), null, 'Token vacío retorna null');
 
-function createToken(exp?: number, type = 'staff'): string {
+function createToken(exp?: number, type = 'staff', authorities = ['ROLE_HOUSEKEEPING']): string {
   const payload: Record<string, unknown> = {
     sub: 'housekeeping@aurora.test',
     type,
-    authorities: ['ROLE_HOUSEKEEPING'],
+    authorities,
   };
   if (exp !== undefined) payload.exp = exp;
   return `header.${btoa(JSON.stringify(payload))}.signature`;
+}
+
+async function testStaffAuthApi(): Promise<void> {
+  console.log('4. Probando login, roles, refresh y logout contra API simulada...');
+  const token = createToken(1_900_000_000);
+  const requests: Array<{ path: string; body: unknown }> = [];
+  const api = createStaffAuthApi(async <T>(path: string, body?: unknown) => {
+    requests.push({ path, body });
+    return {
+      accessToken: token,
+      refreshToken: 'refresh-rotated',
+      tokenType: 'Bearer',
+      expiresIn: 3600,
+    } as T;
+  });
+
+  const login = await api.loginStaff(' housekeeping@aurora.test ', 'plain-password');
+  assertEqual(login.user.role, STAFF_ROLES.HOUSEKEEPING, 'Login válido resuelve el rol del JWT');
+  assertEqual(login.user.email, 'housekeeping@aurora.test', 'Login normaliza el correo');
+  assertEqual(requests[0]?.path, '/auth/login', 'Login usa el endpoint real');
+  assertEqual(
+    (requests[0]?.body as { password: string }).password,
+    'plain-password',
+    'Login envía las credenciales recibidas',
+  );
+
+  const refreshed = await api.refreshStaffToken('refresh-current');
+  assertEqual(requests[1]?.path, '/auth/refresh', 'Refresh usa el endpoint real');
+  assertEqual(refreshed.refreshToken, 'refresh-rotated', 'Refresh devuelve el token rotado');
+
+  await api.logoutStaff('refresh-current');
+  assertEqual(requests[2]?.path, '/auth/logout', 'Logout usa el endpoint real');
+
+  const invalidApi = createStaffAuthApi(async <T>() => {
+    throw new HttpError(401, 'HTTP 401', { message: 'invalid email or password' });
+  });
+  try {
+    await invalidApi.loginStaff('wrong@aurora.test', 'wrong');
+    throw new Error('Credenciales inválidas debieron rechazarse');
+  } catch (error) {
+    assert(
+      error instanceof AuthServiceError && error.kind === 'invalidCredentials',
+      'Credenciales inválidas se traducen a error controlado',
+    );
+  }
+
+  for (const [authority, expectedRole] of [
+    ['ROLE_HOUSEKEEPING', STAFF_ROLES.HOUSEKEEPING],
+    ['ROLE_ROOM_SERVICE', STAFF_ROLES.ROOM_SERVICE],
+    ['ROLE_CONCIERGE', STAFF_ROLES.CONCIERGE],
+  ] as const) {
+    assertEqual(
+      buildStaffUserFromToken(createToken(undefined, 'staff', [authority])).role,
+      expectedRole,
+      `${authority} obtiene solo su rol permitido`,
+    );
+  }
+  try {
+    buildStaffUserFromToken(createToken(undefined, 'staff', ['ROLE_ADMIN']));
+    throw new Error('Un rol fuera del alcance móvil debió rechazarse');
+  } catch (error) {
+    assert(
+      error instanceof AuthServiceError && error.kind === 'unsupportedRole',
+      'El rol admin no se acepta como rol móvil',
+    );
+  }
 }
 
 async function assertRejects(action: () => Promise<unknown>, message: string): Promise<void> {
@@ -198,6 +270,7 @@ function testWebSecureStorage(): void {
 }
 
 void testSessionRestore()
+  .then(testStaffAuthApi)
   .then(testWebSecureStorage)
   .then(() => console.log(' Todas las pruebas de restauración y almacenamiento pasaron.'))
   .catch((error: unknown) => {

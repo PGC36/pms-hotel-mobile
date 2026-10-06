@@ -1,4 +1,4 @@
-import { ApiConfigError } from '@/shared/services/api-client';
+import { ApiConfigError } from '@/shared/services/api-config-error';
 import { HttpError } from '@/shared/services/http-client';
 
 export type AuthErrorKind =
