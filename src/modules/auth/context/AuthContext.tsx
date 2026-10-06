@@ -17,17 +17,15 @@ import {
   logoutStaff,
   refreshStaffToken,
 } from '../services/auth.service';
+import { restoreStaffAccessToken } from '../services/session-restore';
 import { GuestAuthServiceError } from '../services/guest-auth-error';
 import type { Session } from '../models/session.model';
-import { decodeJwtPayload } from '../utils/jwt';
-
 
 const SESSION_STORAGE_KEY = 'pms.session';
 
 /** Forma persistida: liviana a propósito — no almacena datos de negocio locales (reservas/habitaciones). */
 type StoredSession =
-  | { type: 'staff'; email: string }
-  | { type: 'guest'; guestId: string; bookingId: string };
+  { type: 'staff'; email: string } | { type: 'guest'; guestId: string; bookingId: string };
 
 interface State {
   session: Session | null;
@@ -90,28 +88,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // Verificar si el token actual está expirado
-        const payload = decodeJwtPayload(accessToken);
-        const nowSeconds = Math.floor(Date.now() / 1000);
-        const isExpired = payload?.exp ? payload.exp <= nowSeconds : false;
-
-        let validToken = accessToken;
-
-        if (isExpired && refreshToken) {
-          try {
-            const rotated = await refreshStaffToken(refreshToken);
-            await setAuthTokens(rotated.accessToken, rotated.refreshToken);
-            validToken = rotated.accessToken;
-          } catch {
-            await clearAuthTokens();
-            await removeStorageItem(SESSION_STORAGE_KEY);
-            if (isMounted) dispatch({ type: 'RESTORE_DONE', session: null });
-            return;
-          }
-        }
-
         try {
-          const user = buildStaffUserFromToken(validToken, stored.email);
+          const restored = await restoreStaffAccessToken(
+            accessToken,
+            refreshToken,
+            refreshStaffToken,
+          );
+          if (restored.refreshToken) {
+            await setAuthTokens(restored.accessToken, restored.refreshToken);
+          }
+          const user = buildStaffUserFromToken(restored.accessToken, stored.email);
           if (isMounted) dispatch({ type: 'RESTORE_DONE', session: { type: 'staff', user } });
         } catch {
           await clearAuthTokens();

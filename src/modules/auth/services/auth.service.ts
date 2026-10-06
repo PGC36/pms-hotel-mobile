@@ -72,6 +72,10 @@ export function buildStaffUserFromToken(token: string, fallbackEmail?: string): 
     throw new AuthServiceError('unauthorized', 401, 'Token de sesión inválido.');
   }
 
+  if (payload.type !== 'staff') {
+    throw new AuthServiceError('unauthorized', 401, 'Token de sesión inválido.');
+  }
+
   const authorities = payload.authorities ?? [];
   const role = extractStaffRoleFromAuthorities(authorities);
   if (!role) {
