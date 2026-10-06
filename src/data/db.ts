@@ -4,8 +4,29 @@ import type { RoomDTO } from '@/modules/housekeeping/dtos/room.dto';
 import type { IssueReportDTO } from '@/modules/housekeeping/dtos/issue-report.dto';
 import type { HousekeepingTaskCompletionDTO } from '@/modules/housekeeping/dtos/task-completion.dto';
 import type { ServiceRequestDTO } from '@/modules/requests/dtos/service-request.dto';
-import type { AmenityDTO } from '@/modules/amenities/dtos/amenity.dto';
-import type { NotificationDTO } from '@/modules/notifications/dtos/notification.dto';
+
+interface AmenityDemoDTO {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  location: string;
+  opening_time: string;
+  closing_time: string;
+  image_url: string;
+  is_active: boolean;
+}
+
+interface NotificationDemoDTO {
+  id: string;
+  guest_id: string;
+  type: string;
+  title: string;
+  message: string;
+  related_entity_id: string | null;
+  is_read: boolean;
+  created_at: string;
+}
 
 /**
  * "Base de datos" simulada — Hotel Aurora (AURORA · HOTEL & RESORT), hotel
@@ -734,7 +755,7 @@ export const serviceRequestsDB: ServiceRequestDTO[] = [
 // Amenities
 // ---------------------------------------------------------------------------
 
-export const amenitiesDB: AmenityDTO[] = [
+export const amenitiesDB: AmenityDemoDTO[] = [
   {
     id: 'amenity-01',
     name: 'Piscina principal',
@@ -832,7 +853,7 @@ export const amenitiesDB: AmenityDTO[] = [
 // Notifications
 // ---------------------------------------------------------------------------
 
-export const notificationsDB: NotificationDTO[] = [
+export const notificationsDB: NotificationDemoDTO[] = [
   {
     id: 'notification-01',
     guest_id: 'guest-01',

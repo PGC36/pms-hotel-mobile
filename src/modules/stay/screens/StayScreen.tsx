@@ -3,7 +3,7 @@ import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native
 import { useFocusEffect } from '@react-navigation/native';
 
 import { useAuth } from '@/modules/auth/context/AuthContext';
-import { Card, EmptyState, ErrorState, LoadingState } from '@/shared/components';
+import { Button, Card, EmptyState, ErrorState, LoadingState } from '@/shared/components';
 import { colors, spacing, typography } from '@/shared/theme';
 
 import { StayHeader } from '../components/StayHeader';
@@ -45,7 +45,11 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-export function StayScreen() {
+export function StayScreen({ onNavigateToServices, onNavigateToRoomService, onNavigateToNotifications }: {
+  onNavigateToServices: () => void;
+  onNavigateToRoomService: () => void;
+  onNavigateToNotifications: () => void;
+}) {
   const { logout } = useAuth();
   const [state, dispatch] = useReducer(reducer, initialState);
 
@@ -124,6 +128,11 @@ export function StayScreen() {
         }
 
       >
+        <View style={styles.quickActions}>
+          <Button label="Servicios" variant="secondary" onPress={onNavigateToServices} />
+          <Button label="Room Service" variant="secondary" onPress={onNavigateToRoomService} />
+          <Button label="Avisos" variant="secondary" onPress={onNavigateToNotifications} />
+        </View>
         <Card style={styles.card}>
           <Text style={styles.cardTitle}>Detalles de la Estadía</Text>
 
@@ -175,6 +184,11 @@ const styles = StyleSheet.create({
   content: {
     padding: spacing.md,
     gap: spacing.md,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
   },
   errorContainer: {
     flex: 1,

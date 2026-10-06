@@ -84,6 +84,7 @@ function getErrorKind(error: unknown): RoomServiceErrorKind {
     }
     if (error.status === 401) return 'unauthorized';
     if (error.status === 403) return 'forbidden';
+    if (error.status === 409) return 'invalidTransition';
     // Al entregar, un 404 también puede significar que la reserva no tiene folio.
     if (error.status === 404)
       return /guest account/i.test(message) ? 'folioUnavailable' : 'notFound';
