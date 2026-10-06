@@ -734,7 +734,7 @@ export const serviceRequestsDB: ServiceRequestDTO[] = [
 // Amenities
 // ---------------------------------------------------------------------------
 
-export const amenitiesDB: AmenityDTO[] = [
+export const amenitiesDB: any[] = [
   {
     id: 'amenity-01',
     name: 'Piscina principal',
@@ -832,7 +832,7 @@ export const amenitiesDB: AmenityDTO[] = [
 // Notifications
 // ---------------------------------------------------------------------------
 
-export const notificationsDB: NotificationDTO[] = [
+export const notificationsDB: any[] = [
   {
     id: 'notification-01',
     guest_id: 'guest-01',
