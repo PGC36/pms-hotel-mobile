@@ -8,10 +8,10 @@ import { colors, spacing, typography } from '@/shared/theme';
 
 import { useAuth } from '../context/AuthContext';
 
-type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
+type Props = NativeStackScreenProps<AuthStackParamList, 'GuestLogin'>;
 
-export function LoginScreen({ navigation }: Props) {
-  const { loginStaff } = useAuth();
+export function GuestLoginScreen({ navigation }: Props) {
+  const { loginGuest } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -23,9 +23,11 @@ export function LoginScreen({ navigation }: Props) {
     setError(null);
     setIsSubmitting(true);
     try {
-      await loginStaff(email.trim(), password);
+      await loginGuest(email.trim(), password);
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : 'No se pudo iniciar sesión.');
+      setError(
+        submitError instanceof Error ? submitError.message : 'No se pudo iniciar sesión como huésped.',
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -34,18 +36,17 @@ export function LoginScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        {/* Misma marca visible que la web: AURORA · HOTEL & RESORT. */}
         <Text style={styles.title} accessibilityLabel="Aurora Hotel & Resort">
           AURORA
         </Text>
         <Text style={styles.tagline}>HOTEL & RESORT</Text>
-        <Text style={styles.subtitle}>Acceso del personal</Text>
+        <Text style={styles.subtitle}>Portal de Huéspedes</Text>
       </View>
 
       <View style={styles.form}>
         <Input
-          label="Correo"
-          placeholder="nombre@hotelboutique.test"
+          label="Correo electrónico"
+          placeholder="huesped@ejemplo.com"
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="email-address"
@@ -59,9 +60,13 @@ export function LoginScreen({ navigation }: Props) {
           value={password}
           onChangeText={setPassword}
         />
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? (
+          <Text style={styles.error} accessibilityRole="alert">
+            {error}
+          </Text>
+        ) : null}
         <Button
-          label="Iniciar sesión"
+          label="Iniciar sesión como huésped"
           onPress={handleSubmit}
           loading={isSubmitting}
           disabled={!canSubmit}
@@ -69,16 +74,23 @@ export function LoginScreen({ navigation }: Props) {
         />
       </View>
 
-      <Button
-        label="Soy huésped, iniciar sesión"
-        variant="secondary"
-        onPress={() => navigation.navigate('GuestLogin')}
-        fullWidth
-      />
+      <View style={styles.secondaryActions}>
+        <Button
+          label="¿Tienes un código demo? (Vincular)"
+          variant="secondary"
+          onPress={() => navigation.navigate('LinkBooking')}
+          fullWidth
+        />
+        <Button
+          label="Acceso para el personal"
+          variant="secondary"
+          onPress={() => navigation.navigate('Login')}
+          fullWidth
+        />
+      </View>
     </View>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {
@@ -105,6 +117,9 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: spacing.md,
+  },
+  secondaryActions: {
+    gap: spacing.sm,
   },
   error: {
     ...typography.bodySmall,

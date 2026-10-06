@@ -1,18 +1,17 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import { ComingSoonScreen } from '@/shared/screens/ComingSoonScreen';
+import { StayScreen } from '@/modules/stay/screens/StayScreen';
 
 import type { GuestStackParamList } from './routes';
 
 const Stack = createNativeStackNavigator<GuestStackParamList>();
 
-/** Declarado en MOV-06 aunque sus pantallas reales lleguen en la Fase 2 (MOV-15+). */
+/** Navegador de Huéspedes conectado al backend real. */
 export function GuestNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Stay">
-        {() => <ComingSoonScreen title="Estadía" ticket="MOV-15" />}
-      </Stack.Screen>
+      <Stack.Screen name="Stay" component={StayScreen} />
     </Stack.Navigator>
   );
 }
+

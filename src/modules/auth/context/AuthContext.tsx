@@ -1,16 +1,19 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react';
 
-import { clearAuthToken } from '@/shared/services/auth-token';
+import { clearAuthToken, setAuthToken } from '@/shared/services/auth-token';
 import { getStorageJSON, removeStorageItem, setStorageJSON } from '@/shared/services/storage';
 
-import { getUserById, login as loginRequest } from '../services/auth.service';
+import { getGuestStay } from '@/modules/stay/services/stay.service';
+import { getUserById, login as loginRequest, loginGuest as loginGuestRequest } from '../services/auth.service';
+import { GuestAuthServiceError } from '../services/guest-auth-error';
 import type { Session } from '../models/session.model';
 
 const SESSION_STORAGE_KEY = 'pms.session';
 
-/** Forma persistida: liviana a propósito — al restaurar se piden Models frescos. */
+/** Forma persistida: liviana a propósito — no almacena datos de negocio locales (reservas/habitaciones). */
 type StoredSession =
-  { type: 'staff'; userId: string } | { type: 'guest'; guestId: string; bookingId: string };
+  | { type: 'staff'; userId: string }
+  | { type: 'guest'; guestId: string; bookingId: string };
 
 interface State {
   session: Session | null;
@@ -40,6 +43,7 @@ interface AuthContextValue {
   session: Session | null;
   isLoading: boolean;
   loginStaff: (email: string, password: string) => Promise<void>;
+  loginGuest: (email: string, password: string) => Promise<void>;
   setGuestSession: (guestId: string, bookingId: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -68,11 +72,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await removeStorageItem(SESSION_STORAGE_KEY);
           if (isMounted) dispatch({ type: 'RESTORE_DONE', session: null });
         }
-      } else if (isMounted) {
-        dispatch({
-          type: 'RESTORE_DONE',
-          session: { type: 'guest', guestId: stored.guestId, bookingId: stored.bookingId },
-        });
+      } else {
+        // Para el huésped, validamos que el token siga siendo válido contra el backend
+        try {
+          const stay = await getGuestStay();
+          if (isMounted) {
+            dispatch({
+              type: 'RESTORE_DONE',
+              session: { type: 'guest', guestId: stay.guestId, bookingId: stay.bookingId },
+            });
+          }
+        } catch (error) {
+          // Si el token expiró (401/403) o ya no tiene estadía activa, limpiamos la sesión
+          if (error instanceof GuestAuthServiceError && (error.status === 401 || error.status === 403 || error.kind === 'noActiveStay' || error.kind === 'stayNotActive')) {
+            await clearAuthToken();
+            await removeStorageItem(SESSION_STORAGE_KEY);
+            if (isMounted) dispatch({ type: 'RESTORE_DONE', session: null });
+          } else {
+            // Error de red temporal: restauramos la sesión con los IDs para no cerrar la app offline
+            if (isMounted) {
+              dispatch({
+                type: 'RESTORE_DONE',
+                session: { type: 'guest', guestId: stored.guestId, bookingId: stored.bookingId },
+              });
+            }
+          }
+        }
       }
     }
 
@@ -87,6 +112,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const user = await loginRequest(email, password);
     dispatch({ type: 'SET_SESSION', session: { type: 'staff', user } });
     await setStorageJSON<StoredSession>(SESSION_STORAGE_KEY, { type: 'staff', userId: user.id });
+  }
+
+  async function loginGuest(email: string, password: string): Promise<void> {
+    const token = await loginGuestRequest(email, password);
+    await setAuthToken(token);
+    try {
+      const stay = await getGuestStay();
+      const guestSession: StoredSession = {
+        type: 'guest',
+        guestId: stay.guestId,
+        bookingId: stay.bookingId,
+      };
+      await setStorageJSON<StoredSession>(SESSION_STORAGE_KEY, guestSession);
+      dispatch({ type: 'SET_SESSION', session: guestSession });
+    } catch (error) {
+      await clearAuthToken();
+      throw error;
+    }
   }
 
   async function setGuestSession(guestId: string, bookingId: string): Promise<void> {
@@ -112,11 +155,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session: state.session,
       isLoading: state.isLoading,
       loginStaff,
+      loginGuest,
       setGuestSession,
       logout,
     }),
     [state],
   );
+
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
