@@ -36,8 +36,19 @@ pantallas del personal, y viceversa.
 - **React Navigation** — navegador raíz condicional por tipo de sesión
 - **Context + useReducer** para estado global
 - Datos simulados en `src/data/db.ts`, salvo lo ya integrado con la API real
-  (habitaciones de Limpieza y Room Service del personal), que requiere `EXPO_PUBLIC_API_BASE_URL` en un
-  `.env.local` no versionado (ver `.env.example`)
+  (habitaciones de Limpieza, Room Service del personal y autenticación/estadía de huéspedes), que requiere `EXPO_PUBLIC_API_BASE_URL` en un
+  `.env.local` no versionado (ver `.env.example`).
+
+### Credenciales Demo (Backend Real)
+
+| Tipo | Correo | Contraseña | Rol / Reserva |
+|---|---|---|---|
+| **Huésped** | `ana.demo@aurora.test` | `huesped1` | AUR-DEMO-001 |
+| **Huésped** | `carlos.demo@aurora.test` | `huesped2` | AUR-DEMO-002 |
+| **Personal** | `limpieza@hotelboutique.test` | `password` | Limpieza |
+| **Personal** | `roomservice@hotelboutique.test` | `password` | Room Service |
+| **Personal** | `conserjeria@hotelboutique.test` | `password` | Conserjería |
+
 
 ## Requisitos
 
