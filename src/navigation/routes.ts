@@ -52,10 +52,10 @@ export type RoomServiceStackParamList = {
 
 /** Rutas de `GuestNavigator` para la experiencia del huésped (Issue #23). */
 export type GuestTabParamList = {
-  StayTab: NavigatorScreenParams<GuestStayStackParamList>;
-  ServicesTab: NavigatorScreenParams<GuestServicesStackParamList>;
-  RoomServiceTab: NavigatorScreenParams<GuestRoomServiceStackParamList>;
-  NotificationsTab: NavigatorScreenParams<GuestNotificationsStackParamList>;
+  StayTab: NavigatorScreenParams<GuestStayStackParamList> | undefined;
+  ServicesTab: NavigatorScreenParams<GuestServicesStackParamList> | undefined;
+  RoomServiceTab: NavigatorScreenParams<GuestRoomServiceStackParamList> | undefined;
+  NotificationsTab: NavigatorScreenParams<GuestNotificationsStackParamList> | undefined;
 };
 
 export type GuestStayStackParamList = {
@@ -73,9 +73,9 @@ export type GuestServicesStackParamList = {
 
 export type GuestRoomServiceStackParamList = {
   Menu: undefined;
-  ProductDetail: { productId: string };
+  ProductDetail: { product: import('@/modules/room-service/models/product.model').ProductModel };
   Cart: undefined;
-  OrderList: undefined;
+  Orders: undefined;
   OrderDetail: { orderId: string };
 };
 

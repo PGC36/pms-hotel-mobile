@@ -1,6 +1,4 @@
-export const NOTIFICATION_TYPES = ['orderStatus', 'requestStatus', 'general'] as const;
-
-export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
+export type NotificationType = string;
 
 export interface NotificationDTO {
   id: string;

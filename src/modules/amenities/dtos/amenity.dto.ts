@@ -1,11 +1,7 @@
 export const AMENITY_CATEGORIES = [
-  'pool',
-  'gym',
-  'spa',
-  'restaurant',
-  'bar',
-  'business',
-  'kids',
+  'room',
+  'hotel',
+  'service',
 ] as const;
 
 export type AmenityCategory = (typeof AMENITY_CATEGORIES)[number];

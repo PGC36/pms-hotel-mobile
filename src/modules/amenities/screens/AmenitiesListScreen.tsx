@@ -77,7 +77,7 @@ export function AmenitiesListScreen() {
               <View style={styles.cardHeader}>
                 <Text style={styles.titleText}>{item.name}</Text>
                 {item.isActive ? (
-                  <Badge label="Abierto" variant="success" />
+                  <Badge label="Activa" variant="success" />
                 ) : (
                   <Badge label="Cerrado" variant="neutral" />
                 )}

@@ -12,6 +12,9 @@ import {
   removeWebSecureItem,
   setWebSecureItem,
 } from '../src/shared/services/web-secure-storage';
+import { mapAmenityDTOToModel } from '../src/modules/amenities/mappers/amenity.mapper';
+import { canGuestCancelRequest, mapGuestRequestStatus } from '../src/modules/requests/guest/models/guest-request.model';
+import { ORDER_STATUS_TRANSITIONS } from '../src/shared/constants/statuses';
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -26,6 +29,34 @@ function assertEqual<T>(actual: T, expected: T, message: string) {
 }
 
 console.log('--- Iniciando pruebas de autenticación de personal ---');
+
+console.log('Probando contratos del portal de huésped...');
+const amenity = mapAmenityDTOToModel({
+  id: 'amenity-1',
+  name: 'Piscina',
+  description: 'Piscina climatizada',
+  category: 'hotel',
+  location: 'Terraza',
+  opensAt: '08:00:00',
+  closesAt: '22:00:00',
+  active: true,
+});
+assertEqual(amenity.category, 'hotel', 'Amenidad usa la categoría real del backend');
+assertEqual(amenity.scheduleLabel, '08:00 - 22:00', 'Horario backend se formatea sin segundos');
+assertEqual(mapGuestRequestStatus('in_progress'), 'inProgress', 'Estado backend in_progress se normaliza');
+assertEqual(mapGuestRequestStatus('cancelled'), 'cancelled', 'Estado backend cancelled se conserva');
+assert(canGuestCancelRequest('pending'), 'Huésped puede cancelar solicitud pendiente');
+assert(canGuestCancelRequest('accepted'), 'Huésped puede cancelar solicitud aceptada');
+assert(!canGuestCancelRequest('inProgress'), 'Huésped no puede cancelar solicitud en progreso');
+assert(!canGuestCancelRequest('completed'), 'Huésped no puede cancelar solicitud completada');
+assert(ORDER_STATUS_TRANSITIONS.pending.includes('cancelled'), 'Pedido pendiente permite cancelación');
+assert(!ORDER_STATUS_TRANSITIONS.onTheWay.includes('cancelled'), 'Pedido en camino no permite cancelación');
+try {
+  mapGuestRequestStatus('unknown');
+  throw new Error('Un estado desconocido debió rechazarse');
+} catch (error) {
+  assert(error instanceof Error && error.message.includes('desconocido'), 'Estado desconocido no se muestra como válido');
+}
 
 // 1. Prueba de extracción de rol
 console.log('1. Probando extracción de roles desde authorities de Spring Security...');

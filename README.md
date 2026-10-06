@@ -3,9 +3,8 @@
 Aplicación móvil del Property Management System para hoteles boutique.
 Construida con React Native y Expo.
 
-> **Estado:** en desarrollo · Fase 0 (base del proyecto)
-> Este repositorio contiene únicamente el frontend. Las habitaciones de Limpieza
-> (MOV-09) ya consumen el backend real; el resto de los datos sigue simulado.
+> **Estado:** en desarrollo. El portal de huésped consume los endpoints reales
+> de estadía, amenidades, solicitudes, Room Service y notificaciones.
 
 ---
 
@@ -17,7 +16,7 @@ tipo de sesión:
 | Experiencia | Usuarios | Estado |
 |---|---|---|
 | **Personal** | Limpieza, Room Service, Conserjería | En construcción (Fase 1) |
-| **Huésped** | Huésped con reserva confirmada | Pendiente (Fase 2) |
+| **Huésped** | Huésped con reserva confirmada | Estadía, servicios, Room Service y avisos |
 
 El navegador raíz decide qué árbol cargar. Un huésped nunca instancia las
 pantallas del personal, y viceversa.
@@ -35,9 +34,24 @@ pantallas del personal, y viceversa.
 - **TypeScript**
 - **React Navigation** — navegador raíz condicional por tipo de sesión
 - **Context + useReducer** para estado global
-- Datos simulados en `src/data/db.ts`, salvo lo ya integrado con la API real
-  (habitaciones de Limpieza, Room Service del personal y autenticación/estadía de huéspedes), que requiere `EXPO_PUBLIC_API_BASE_URL` en un
-  `.env.local` no versionado (ver `.env.example`).
+- Algunas pantallas del personal todavía usan datos de demostración en
+  `src/data/db.ts`. El portal de huésped usa el backend y requiere
+  `EXPO_PUBLIC_API_BASE_URL` en un `.env.local` no versionado (ver `.env.example`).
+
+### Portal de huésped
+
+El acceso del huésped mantiene cuatro destinos principales: **Estadía**,
+**Servicios**, **Room Service** y **Avisos**. Amenidades y solicitudes se abren
+dentro de Servicios; carrito, pedidos e historial se abren dentro de Room
+Service. El carrito solo vive en memoria hasta crear el pedido; los pedidos,
+solicitudes, amenidades y notificaciones se vuelven a consultar al backend al
+entrar o actualizar sus pantallas.
+
+Los flujos utilizan `/api/v1/guest/amenities`, `/guest/housekeeping/requests`,
+`/guest/concierge/requests`, `/guest/room-service/products`,
+`/guest/room-service/orders` y `/guest/notifications` (con sus rutas de detalle,
+cancelación y lectura). Las operaciones requieren sesión de huésped vigente y
+reservación asociada cuando así lo exige el backend.
 
 ### Credenciales Demo (Backend Real)
 
@@ -73,6 +87,7 @@ Escanea el código QR con Expo Go, o presiona `a` para abrir el emulador Android
 ```bash
 npx expo start      # servidor de desarrollo
 npm run lint         # ESLint
+npm test             # pruebas de autenticación y contratos del portal de huésped
 npm run format       # Prettier — escribe cambios
 npm run format:check # Prettier — solo verifica
 npx tsc --noEmit     # chequeo de tipos
