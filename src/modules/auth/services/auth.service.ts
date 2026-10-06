@@ -1,42 +1,101 @@
-import { usersDB } from '@/data/db';
 import { apiClient } from '@/shared/services/api-client';
-import { delay } from '@/shared/services/delay';
 
+import type { AuthResponseDTO, LoginRequestDTO, RefreshTokenRequestDTO } from '../dtos/auth.dto';
 import type { GuestLoginRequestDTO, GuestLoginResponseDTO } from '../dtos/guest-auth.dto';
-import { mapUserDTOToModel } from '../mappers/user.mapper';
 import type { UserModel } from '../models/user.model';
+import { decodeJwtPayload, extractStaffRoleFromAuthorities } from '../utils/jwt';
+import { AuthServiceError, callAuthApi } from './auth-error';
 import { callGuestAuthApi } from './guest-auth-error';
 
+/**
+ * Autentica al personal contra la API real (`POST /auth/login`).
+ * Devuelve el usuario reconstruido a partir de los datos y el token del backend.
+ */
+export async function loginStaff(
+  email: string,
+  password: string,
+): Promise<{ user: UserModel; accessToken: string; refreshToken: string }> {
+  const payload: LoginRequestDTO = {
+    email: email.trim(),
+    password,
+  };
 
-
-export class InvalidCredentialsError extends Error {
-  constructor() {
-    super('Correo o contraseña incorrectos.');
-    this.name = 'InvalidCredentialsError';
-  }
-}
-
-/** Login de personal. La sesión (persistencia, tipo staff|guest) la gestiona `AuthContext` (MOV-06). */
-export async function login(email: string, password: string): Promise<UserModel> {
-  await delay();
-
-  const match = usersDB.find(
-    (user) => user.email.toLowerCase() === email.toLowerCase() && user.password === password,
+  const response = await callAuthApi(() =>
+    apiClient.post<AuthResponseDTO>('/auth/login', payload),
   );
 
-  if (!match || !match.is_active) {
-    throw new InvalidCredentialsError();
-  }
-
-  return mapUserDTOToModel(match);
+  const user = buildStaffUserFromToken(response.accessToken, email.trim());
+  return {
+    user,
+    accessToken: response.accessToken,
+    refreshToken: response.refreshToken,
+  };
 }
 
-/** Usado para restaurar la sesión guardada al reabrir la app (MOV-06). */
-export async function getUserById(id: string): Promise<UserModel | null> {
-  await delay();
+/**
+ * Renueva el token de acceso usando el token de rotación (`POST /auth/refresh`).
+ */
+export async function refreshStaffToken(
+  refreshToken: string,
+): Promise<{ accessToken: string; refreshToken: string }> {
+  const payload: RefreshTokenRequestDTO = {
+    refreshToken,
+  };
 
-  const found = usersDB.find((user) => user.id === id);
-  return found ? mapUserDTOToModel(found) : null;
+  const response = await callAuthApi(() =>
+    apiClient.post<AuthResponseDTO>('/auth/refresh', payload),
+  );
+
+  return {
+    accessToken: response.accessToken,
+    refreshToken: response.refreshToken,
+  };
+}
+
+/**
+ * Cierra la sesión en el servidor revocando el refresh token (`POST /auth/logout`).
+ */
+export async function logoutStaff(refreshToken: string): Promise<void> {
+  const payload: RefreshTokenRequestDTO = {
+    refreshToken,
+  };
+
+  await callAuthApi(() => apiClient.post<void>('/auth/logout', payload));
+}
+
+/**
+ * Construye el UserModel a partir del token JWT y el email.
+ */
+export function buildStaffUserFromToken(token: string, fallbackEmail?: string): UserModel {
+  const payload = decodeJwtPayload(token);
+  if (!payload) {
+    throw new AuthServiceError('unauthorized', 401, 'Token de sesión inválido.');
+  }
+
+  const authorities = payload.authorities ?? [];
+  const role = extractStaffRoleFromAuthorities(authorities);
+  if (!role) {
+    throw new AuthServiceError('unsupportedRole', 403);
+  }
+
+  const email = payload.sub ?? fallbackEmail ?? '';
+  // Construye un nombre legible a partir del email si no viene explícito
+  const namePart = email.split('@')[0] ?? 'Personal';
+  const formattedName = namePart
+    .split(/[._-]/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+
+  return {
+    id: email,
+    fullName: formattedName || 'Personal',
+    email,
+    phone: '',
+    role,
+    isActive: true,
+    avatarUrl: null,
+    createdAt: new Date(),
+  };
 }
 
 /**
@@ -55,4 +114,3 @@ export async function loginGuest(email: string, password: string): Promise<strin
 
   return response.accessToken;
 }
-

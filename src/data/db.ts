@@ -1,4 +1,3 @@
-import type { UserDTO } from '@/modules/auth/dtos/user.dto';
 import type { GuestDTO } from '@/modules/booking/dtos/guest.dto';
 import type { BookingDTO } from '@/modules/booking/dtos/booking.dto';
 import type { RoomDTO } from '@/modules/housekeeping/dtos/room.dto';
@@ -10,84 +9,12 @@ import type { NotificationDTO } from '@/modules/notifications/dtos/notification.
 
 /**
  * "Base de datos" simulada — Hotel Aurora (AURORA · HOTEL & RESORT), hotel
- * boutique en Antigua Guatemala. Arrays con forma de DTO (architecture.md sección 2): así vive el
- * dato hoy, y así lo devolvería la API real mañana. Ninguna pantalla ni
- * componente debe importar de este archivo directamente — solo los
- * `*.service.ts` de cada módulo (regla de oro, AGENTS.md).
+ * boutique en Antigua Guatemala. Arrays con forma de DTO (architecture.md sección 2).
+ * Nota: Los usuarios de personal (usersDB) han sido removidos porque la autenticación
+ * ahora opera 100% contra los endpoints reales del backend (/api/v1/auth).
  */
 
-// ---------------------------------------------------------------------------
-// Users (personal)
-// ---------------------------------------------------------------------------
 
-export const usersDB: UserDTO[] = [
-  {
-    id: 'user-01',
-    full_name: 'Maria Lopez',
-    email: 'limpieza@hotelboutique.test',
-    phone: '+502 5511 2233',
-    role: 'housekeeping',
-    password: 'AuroraDemo2026!',
-    is_active: true,
-    avatar_url: null,
-    created_at: '2023-02-01T13:00:00.000Z',
-  },
-  {
-    id: 'user-02',
-    full_name: 'Byron Estuardo Coy',
-    email: 'limpieza2@hotelboutique.test',
-    phone: '+502 5511 2244',
-    role: 'housekeeping',
-    password: 'Limpieza2026!',
-    is_active: true,
-    avatar_url: null,
-    created_at: '2024-06-15T13:00:00.000Z',
-  },
-  {
-    id: 'user-03',
-    full_name: 'Jorge Chavez',
-    email: 'roomservice@hotelboutique.test',
-    phone: '+502 5522 3344',
-    role: 'roomService',
-    password: 'AuroraDemo2026!',
-    is_active: true,
-    avatar_url: null,
-    created_at: '2022-11-10T13:00:00.000Z',
-  },
-  {
-    id: 'user-04',
-    full_name: 'Ana Lucía Recinos',
-    email: 'roomservice2@hotelboutique.test',
-    phone: '+502 5522 3355',
-    role: 'roomService',
-    password: 'RoomService2026!',
-    is_active: true,
-    avatar_url: null,
-    created_at: '2025-01-20T13:00:00.000Z',
-  },
-  {
-    id: 'user-05',
-    full_name: 'Sofia Castillo',
-    email: 'conserjeria@hotelboutique.test',
-    phone: '+502 5533 4455',
-    role: 'concierge',
-    password: 'AuroraDemo2026!',
-    is_active: true,
-    avatar_url: null,
-    created_at: '2023-08-05T13:00:00.000Z',
-  },
-  {
-    id: 'user-06',
-    full_name: 'Silvia Patricia Xocop',
-    email: 'conserjeria2@hotelboutique.test',
-    phone: '+502 5533 4466',
-    role: 'concierge',
-    password: 'Concierge2026!',
-    is_active: true,
-    avatar_url: null,
-    created_at: '2024-03-12T13:00:00.000Z',
-  },
-];
 
 // ---------------------------------------------------------------------------
 // Rooms

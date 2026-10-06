@@ -45,9 +45,10 @@ pantallas del personal, y viceversa.
 |---|---|---|---|
 | **Huésped** | `ana.demo@aurora.test` | `huesped1` | AUR-DEMO-001 |
 | **Huésped** | `carlos.demo@aurora.test` | `huesped2` | AUR-DEMO-002 |
-| **Personal** | `limpieza@hotelboutique.test` | `password` | Limpieza |
-| **Personal** | `roomservice@hotelboutique.test` | `password` | Room Service |
-| **Personal** | `conserjeria@hotelboutique.test` | `password` | Conserjería |
+| **Personal** | `limpieza@aurora.test` | `limpieza` | Limpieza (`housekeeping`) |
+| **Personal** | `roomservice@aurora.test` | `roomservice` | Room Service (`roomService`) |
+| **Personal** | `conserjeria@aurora.test` | `conserjeria` | Conserjería (`concierge`) |
+
 
 
 ## Requisitos

@@ -1,18 +1,32 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react';
 
-import { clearAuthToken, setAuthToken } from '@/shared/services/auth-token';
+import {
+  clearAuthTokens,
+  getAuthToken,
+  getRefreshToken,
+  setAuthToken,
+  setAuthTokens,
+} from '@/shared/services/auth-token';
 import { getStorageJSON, removeStorageItem, setStorageJSON } from '@/shared/services/storage';
 
 import { getGuestStay } from '@/modules/stay/services/stay.service';
-import { getUserById, login as loginRequest, loginGuest as loginGuestRequest } from '../services/auth.service';
+import {
+  buildStaffUserFromToken,
+  loginGuest as loginGuestRequest,
+  loginStaff as loginStaffRequest,
+  logoutStaff,
+  refreshStaffToken,
+} from '../services/auth.service';
 import { GuestAuthServiceError } from '../services/guest-auth-error';
 import type { Session } from '../models/session.model';
+import { decodeJwtPayload } from '../utils/jwt';
+
 
 const SESSION_STORAGE_KEY = 'pms.session';
 
 /** Forma persistida: liviana a propósito — no almacena datos de negocio locales (reservas/habitaciones). */
 type StoredSession =
-  | { type: 'staff'; userId: string }
+  | { type: 'staff'; email: string }
   | { type: 'guest'; guestId: string; bookingId: string };
 
 interface State {
@@ -60,15 +74,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const stored = await getStorageJSON<StoredSession>(SESSION_STORAGE_KEY);
 
       if (!stored) {
+        await clearAuthTokens();
         if (isMounted) dispatch({ type: 'RESTORE_DONE', session: null });
         return;
       }
 
       if (stored.type === 'staff') {
-        const user = await getUserById(stored.userId);
-        if (user && user.isActive) {
+        const accessToken = await getAuthToken();
+        const refreshToken = await getRefreshToken();
+
+        if (!accessToken) {
+          await clearAuthTokens();
+          await removeStorageItem(SESSION_STORAGE_KEY);
+          if (isMounted) dispatch({ type: 'RESTORE_DONE', session: null });
+          return;
+        }
+
+        // Verificar si el token actual está expirado
+        const payload = decodeJwtPayload(accessToken);
+        const nowSeconds = Math.floor(Date.now() / 1000);
+        const isExpired = payload?.exp ? payload.exp <= nowSeconds : false;
+
+        let validToken = accessToken;
+
+        if (isExpired && refreshToken) {
+          try {
+            const rotated = await refreshStaffToken(refreshToken);
+            await setAuthTokens(rotated.accessToken, rotated.refreshToken);
+            validToken = rotated.accessToken;
+          } catch {
+            await clearAuthTokens();
+            await removeStorageItem(SESSION_STORAGE_KEY);
+            if (isMounted) dispatch({ type: 'RESTORE_DONE', session: null });
+            return;
+          }
+        }
+
+        try {
+          const user = buildStaffUserFromToken(validToken, stored.email);
           if (isMounted) dispatch({ type: 'RESTORE_DONE', session: { type: 'staff', user } });
-        } else {
+        } catch {
+          await clearAuthTokens();
           await removeStorageItem(SESSION_STORAGE_KEY);
           if (isMounted) dispatch({ type: 'RESTORE_DONE', session: null });
         }
@@ -84,8 +130,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } catch (error) {
           // Si el token expiró (401/403) o ya no tiene estadía activa, limpiamos la sesión
-          if (error instanceof GuestAuthServiceError && (error.status === 401 || error.status === 403 || error.kind === 'noActiveStay' || error.kind === 'stayNotActive')) {
-            await clearAuthToken();
+          if (
+            error instanceof GuestAuthServiceError &&
+            (error.status === 401 ||
+              error.status === 403 ||
+              error.kind === 'noActiveStay' ||
+              error.kind === 'stayNotActive')
+          ) {
+            await clearAuthTokens();
             await removeStorageItem(SESSION_STORAGE_KEY);
             if (isMounted) dispatch({ type: 'RESTORE_DONE', session: null });
           } else {
@@ -109,9 +161,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function loginStaff(email: string, password: string): Promise<void> {
-    const user = await loginRequest(email, password);
+    const { user, accessToken, refreshToken } = await loginStaffRequest(email, password);
+    await setAuthTokens(accessToken, refreshToken);
+    await setStorageJSON<StoredSession>(SESSION_STORAGE_KEY, { type: 'staff', email: user.email });
     dispatch({ type: 'SET_SESSION', session: { type: 'staff', user } });
-    await setStorageJSON<StoredSession>(SESSION_STORAGE_KEY, { type: 'staff', userId: user.id });
   }
 
   async function loginGuest(email: string, password: string): Promise<void> {
@@ -127,7 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await setStorageJSON<StoredSession>(SESSION_STORAGE_KEY, guestSession);
       dispatch({ type: 'SET_SESSION', session: guestSession });
     } catch (error) {
-      await clearAuthToken();
+      await clearAuthTokens();
       throw error;
     }
   }
@@ -138,16 +191,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   /**
-   * Cierra la sesión por completo: primero el token de la API real, luego la
-   * sesión persistida y al final el estado en memoria. Si borrar algo falla,
-   * lanza y la sesión sigue abierta (el usuario puede reintentar), para no
-   * dejar una sesión a medias que al recargar combine un rol con el token de
-   * otro usuario.
+   * Cierra la sesión: intenta revocar el refresh token en el backend si existe,
+   * limpia tokens seguros y almacenamiento local, y vacía el estado.
    */
   async function logout(): Promise<void> {
-    await clearAuthToken();
-    await removeStorageItem(SESSION_STORAGE_KEY);
-    dispatch({ type: 'CLEAR_SESSION' });
+    try {
+      const refreshToken = await getRefreshToken();
+      if (refreshToken) {
+        await logoutStaff(refreshToken);
+      }
+    } catch {
+      // Ignorar fallo de red al cerrar sesión para garantizar que el dispositivo limpie siempre
+    } finally {
+      await clearAuthTokens();
+      await removeStorageItem(SESSION_STORAGE_KEY);
+      dispatch({ type: 'CLEAR_SESSION' });
+    }
   }
 
   const value = useMemo<AuthContextValue>(
@@ -161,7 +220,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }),
     [state],
   );
-
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
