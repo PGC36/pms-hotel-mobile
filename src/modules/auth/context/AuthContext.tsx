@@ -1,16 +1,31 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react';
 
-import { clearAuthToken } from '@/shared/services/auth-token';
+import {
+  clearAuthTokens,
+  getAuthToken,
+  getRefreshToken,
+  setAuthToken,
+  setAuthTokens,
+} from '@/shared/services/auth-token';
 import { getStorageJSON, removeStorageItem, setStorageJSON } from '@/shared/services/storage';
 
-import { getUserById, login as loginRequest } from '../services/auth.service';
+import { getGuestStay } from '@/modules/stay/services/stay.service';
+import {
+  buildStaffUserFromToken,
+  loginGuest as loginGuestRequest,
+  loginStaff as loginStaffRequest,
+  logoutStaff,
+  refreshStaffToken,
+} from '../services/auth.service';
+import { restoreStaffAccessToken } from '../services/session-restore';
+import { GuestAuthServiceError } from '../services/guest-auth-error';
 import type { Session } from '../models/session.model';
 
 const SESSION_STORAGE_KEY = 'pms.session';
 
-/** Forma persistida: liviana a propósito — al restaurar se piden Models frescos. */
+/** Forma persistida: liviana a propósito — no almacena datos de negocio locales (reservas/habitaciones). */
 type StoredSession =
-  { type: 'staff'; userId: string } | { type: 'guest'; guestId: string; bookingId: string };
+  { type: 'staff'; email: string } | { type: 'guest'; guestId: string; bookingId: string };
 
 interface State {
   session: Session | null;
@@ -40,6 +55,7 @@ interface AuthContextValue {
   session: Session | null;
   isLoading: boolean;
   loginStaff: (email: string, password: string) => Promise<void>;
+  loginGuest: (email: string, password: string) => Promise<void>;
   setGuestSession: (guestId: string, bookingId: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -56,23 +72,70 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const stored = await getStorageJSON<StoredSession>(SESSION_STORAGE_KEY);
 
       if (!stored) {
+        await clearAuthTokens();
         if (isMounted) dispatch({ type: 'RESTORE_DONE', session: null });
         return;
       }
 
       if (stored.type === 'staff') {
-        const user = await getUserById(stored.userId);
-        if (user && user.isActive) {
+        const accessToken = await getAuthToken();
+        const refreshToken = await getRefreshToken();
+
+        if (!accessToken) {
+          await clearAuthTokens();
+          await removeStorageItem(SESSION_STORAGE_KEY);
+          if (isMounted) dispatch({ type: 'RESTORE_DONE', session: null });
+          return;
+        }
+
+        try {
+          const restored = await restoreStaffAccessToken(
+            accessToken,
+            refreshToken,
+            refreshStaffToken,
+          );
+          if (restored.refreshToken) {
+            await setAuthTokens(restored.accessToken, restored.refreshToken);
+          }
+          const user = buildStaffUserFromToken(restored.accessToken, stored.email);
           if (isMounted) dispatch({ type: 'RESTORE_DONE', session: { type: 'staff', user } });
-        } else {
+        } catch {
+          await clearAuthTokens();
           await removeStorageItem(SESSION_STORAGE_KEY);
           if (isMounted) dispatch({ type: 'RESTORE_DONE', session: null });
         }
-      } else if (isMounted) {
-        dispatch({
-          type: 'RESTORE_DONE',
-          session: { type: 'guest', guestId: stored.guestId, bookingId: stored.bookingId },
-        });
+      } else {
+        // Para el huésped, validamos que el token siga siendo válido contra el backend
+        try {
+          const stay = await getGuestStay();
+          if (isMounted) {
+            dispatch({
+              type: 'RESTORE_DONE',
+              session: { type: 'guest', guestId: stay.guestId, bookingId: stay.bookingId },
+            });
+          }
+        } catch (error) {
+          // Si el token expiró (401/403) o ya no tiene estadía activa, limpiamos la sesión
+          if (
+            error instanceof GuestAuthServiceError &&
+            (error.status === 401 ||
+              error.status === 403 ||
+              error.kind === 'noActiveStay' ||
+              error.kind === 'stayNotActive')
+          ) {
+            await clearAuthTokens();
+            await removeStorageItem(SESSION_STORAGE_KEY);
+            if (isMounted) dispatch({ type: 'RESTORE_DONE', session: null });
+          } else {
+            // Error de red temporal: restauramos la sesión con los IDs para no cerrar la app offline
+            if (isMounted) {
+              dispatch({
+                type: 'RESTORE_DONE',
+                session: { type: 'guest', guestId: stored.guestId, bookingId: stored.bookingId },
+              });
+            }
+          }
+        }
       }
     }
 
@@ -84,9 +147,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function loginStaff(email: string, password: string): Promise<void> {
-    const user = await loginRequest(email, password);
+    const { user, accessToken, refreshToken } = await loginStaffRequest(email, password);
+    await setAuthTokens(accessToken, refreshToken);
+    await setStorageJSON<StoredSession>(SESSION_STORAGE_KEY, { type: 'staff', email: user.email });
     dispatch({ type: 'SET_SESSION', session: { type: 'staff', user } });
-    await setStorageJSON<StoredSession>(SESSION_STORAGE_KEY, { type: 'staff', userId: user.id });
+  }
+
+  async function loginGuest(email: string, password: string): Promise<void> {
+    const token = await loginGuestRequest(email, password);
+    await setAuthToken(token);
+    try {
+      const stay = await getGuestStay();
+      const guestSession: StoredSession = {
+        type: 'guest',
+        guestId: stay.guestId,
+        bookingId: stay.bookingId,
+      };
+      await setStorageJSON<StoredSession>(SESSION_STORAGE_KEY, guestSession);
+      dispatch({ type: 'SET_SESSION', session: guestSession });
+    } catch (error) {
+      await clearAuthTokens();
+      throw error;
+    }
   }
 
   async function setGuestSession(guestId: string, bookingId: string): Promise<void> {
@@ -95,16 +177,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   /**
-   * Cierra la sesión por completo: primero el token de la API real, luego la
-   * sesión persistida y al final el estado en memoria. Si borrar algo falla,
-   * lanza y la sesión sigue abierta (el usuario puede reintentar), para no
-   * dejar una sesión a medias que al recargar combine un rol con el token de
-   * otro usuario.
+   * Cierra la sesión: intenta revocar el refresh token en el backend si existe,
+   * limpia tokens seguros y almacenamiento local, y vacía el estado.
    */
   async function logout(): Promise<void> {
-    await clearAuthToken();
-    await removeStorageItem(SESSION_STORAGE_KEY);
-    dispatch({ type: 'CLEAR_SESSION' });
+    try {
+      const refreshToken = await getRefreshToken();
+      if (refreshToken) {
+        await logoutStaff(refreshToken);
+      }
+    } catch {
+      // Ignorar fallo de red al cerrar sesión para garantizar que el dispositivo limpie siempre
+    } finally {
+      await clearAuthTokens();
+      await removeStorageItem(SESSION_STORAGE_KEY);
+      dispatch({ type: 'CLEAR_SESSION' });
+    }
   }
 
   const value = useMemo<AuthContextValue>(
@@ -112,6 +200,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session: state.session,
       isLoading: state.isLoading,
       loginStaff,
+      loginGuest,
       setGuestSession,
       logout,
     }),

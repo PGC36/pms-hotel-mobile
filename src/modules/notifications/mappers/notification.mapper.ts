@@ -4,12 +4,13 @@ import type { NotificationModel } from '../models/notification.model';
 export function mapNotificationDTOToModel(dto: NotificationDTO): NotificationModel {
   return {
     id: dto.id,
-    guestId: dto.guest_id,
     type: dto.type,
     title: dto.title,
     message: dto.message,
-    relatedEntityId: dto.related_entity_id,
-    isRead: dto.is_read,
-    createdAt: new Date(dto.created_at),
+    resourceType: dto.resourceType,
+    resourceId: dto.resourceId,
+    isRead: dto.read,
+    readAt: dto.readAt ? new Date(dto.readAt) : null,
+    createdAt: new Date(dto.createdAt),
   };
 }

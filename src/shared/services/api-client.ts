@@ -1,14 +1,10 @@
 import { getAuthToken } from './auth-token';
 import { createHttpClient, type HttpClient } from './http-client';
+import { ApiConfigError } from './api-config-error';
+
+export { ApiConfigError } from './api-config-error';
 
 /** La API no está configurada: falta `EXPO_PUBLIC_API_BASE_URL` (ver `.env.example`). */
-export class ApiConfigError extends Error {
-  constructor() {
-    super('La URL del servidor no está configurada (EXPO_PUBLIC_API_BASE_URL).');
-    this.name = 'ApiConfigError';
-  }
-}
-
 /**
  * Expo solo reemplaza `process.env.EXPO_PUBLIC_*` cuando se accede con esta
  * forma literal; no desestructurar ni usar `process.env[nombre]`.
