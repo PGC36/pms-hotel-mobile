@@ -2,6 +2,7 @@ import { createBottomTabNavigator, type BottomTabNavigationProp } from '@react-n
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React, { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { AmenityDetailScreen } from '@/modules/amenities/screens/AmenityDetailScreen';
 import { AmenitiesListScreen } from '@/modules/amenities/screens/AmenitiesListScreen';
@@ -18,6 +19,8 @@ import { GuestServicesHomeScreen } from '@/modules/requests/guest/screens/GuestS
 import { MyRequestsScreen } from '@/modules/requests/guest/screens/MyRequestsScreen';
 import { RequestServiceScreen } from '@/modules/requests/guest/screens/RequestServiceScreen';
 import { StayScreen } from '@/modules/stay/screens/StayScreen';
+import { GuestLogoutButton } from '@/modules/auth/components/GuestLogoutButton';
+import { colors } from '@/shared/theme';
 
 import type {
   GuestNotificationsStackParamList,
@@ -52,7 +55,7 @@ function GuestStayNavigator() {
 
 function GuestServicesNavigator() {
   return (
-    <ServicesStack.Navigator>
+    <ServicesStack.Navigator screenOptions={{ headerRight: () => <GuestLogoutButton /> }}>
       <ServicesStack.Screen name="ServicesHome" component={GuestServicesHomeScreen} options={{ title: 'Servicios' }} />
       <ServicesStack.Screen name="AmenitiesList" component={AmenitiesListScreen} options={{ title: 'Amenidades' }} />
       <ServicesStack.Screen name="AmenityDetail" component={AmenityDetailScreen} options={{ title: 'Amenidad' }} />
@@ -66,7 +69,7 @@ function GuestServicesNavigator() {
 function GuestRoomServiceNavigator() {
   return (
     <CartProvider>
-      <RoomServiceStack.Navigator>
+      <RoomServiceStack.Navigator screenOptions={{ headerRight: () => <GuestLogoutButton /> }}>
         <RoomServiceStack.Screen name="Menu" component={MenuScreen} options={{ title: 'Room Service' }} />
         <RoomServiceStack.Screen name="ProductDetail" component={ProductDetailScreen} options={{ title: 'Producto' }} />
         <RoomServiceStack.Screen name="Cart" component={CartScreen} options={{ title: 'Carrito' }} />
@@ -79,7 +82,7 @@ function GuestRoomServiceNavigator() {
 
 function GuestNotificationsNavigator({ onUnreadCountChange }: { onUnreadCountChange: (count: number) => void }) {
   return (
-    <NotificationsStack.Navigator>
+    <NotificationsStack.Navigator screenOptions={{ headerRight: () => <GuestLogoutButton /> }}>
       <NotificationsStack.Screen name="Inbox" options={{ title: 'Notificaciones' }}>
         {() => <NotificationListScreen onUnreadCountChange={onUnreadCountChange} />}
       </NotificationsStack.Screen>
@@ -91,13 +94,26 @@ function GuestNotificationsNavigator({ onUnreadCountChange }: { onUnreadCountCha
 export function GuestNavigator() {
   const [unreadCount, setUnreadCount] = useState(0);
   return (
-    <Tab.Navigator screenOptions={{ headerShown: false }}>
-      <Tab.Screen name="StayTab" component={GuestStayNavigator} options={{ title: 'Estadía' }} />
-      <Tab.Screen name="ServicesTab" component={GuestServicesNavigator} options={{ title: 'Servicios' }} />
-      <Tab.Screen name="RoomServiceTab" component={GuestRoomServiceNavigator} options={{ title: 'Room Service' }} />
+    <Tab.Navigator screenOptions={{
+      headerShown: false,
+      tabBarActiveTintColor: colors.brand[600],
+      tabBarInactiveTintColor: colors.text.secondary,
+    }}>
+      <Tab.Screen name="StayTab" component={GuestStayNavigator} options={{
+        title: 'Estadía', tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="bed-outline" color={color} size={size} />,
+      }} />
+      <Tab.Screen name="ServicesTab" component={GuestServicesNavigator} options={{
+        title: 'Servicios', tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="broom" color={color} size={size} />,
+      }} />
+      <Tab.Screen name="RoomServiceTab" component={GuestRoomServiceNavigator} options={{
+        title: 'Room Service', tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="silverware-fork-knife" color={color} size={size} />,
+      }} />
       <Tab.Screen
         name="NotificationsTab"
-        options={{ title: 'Avisos', tabBarBadge: unreadCount > 0 ? unreadCount : undefined }}
+        options={{
+          title: 'Avisos', tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
+          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="bell-outline" color={color} size={size} />,
+        }}
         listeners={{ focus: () => { void fetchUnreadCount().then(setUnreadCount).catch(() => undefined); } }}
       >
         {() => <GuestNotificationsNavigator onUnreadCountChange={setUnreadCount} />}
