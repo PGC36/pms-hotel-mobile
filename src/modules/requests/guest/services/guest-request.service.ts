@@ -25,6 +25,24 @@ interface ConciergeRequestDTO {
   updatedAt: string;
 }
 
+interface HousekeepingItemRequestDTO {
+  id: string;
+  roomNumber: string;
+  status: string;
+  description: string;
+  notes: string | null;
+  requestedAt: string;
+  updatedAt: string;
+}
+
+export interface HousekeepingItemOption {
+  id: string;
+  name: string;
+  description: string | null;
+  unit: string;
+  currentQuantity: number;
+}
+
 export interface ConciergeServiceOption {
   id: string;
   name: string;
@@ -103,6 +121,25 @@ export async function getGuestRequests(): Promise<GuestRequestModel[]> {
 
 export async function getGuestConciergeServices(): Promise<ConciergeServiceOption[]> {
   return request(() => apiClient.get<ConciergeServiceOption[]>('/guest/concierge/services'));
+}
+
+export async function getGuestHousekeepingItems(): Promise<HousekeepingItemOption[]> {
+  return request(() => apiClient.get<HousekeepingItemOption[]>('/guest/housekeeping/items'));
+}
+
+export async function createGuestHousekeepingItemRequest(
+  itemId: string,
+  quantity: number,
+  notes?: string,
+): Promise<GuestRequestModel> {
+  const dto = await request(() =>
+    apiClient.post<HousekeepingItemRequestDTO>('/guest/housekeeping/item-requests', {
+      itemId,
+      quantity,
+      notes: notes?.trim() || null,
+    }),
+  );
+  return mapHousekeeping(dto);
 }
 
 export async function getGuestRequest(id: string, type: GuestRequestType): Promise<GuestRequestModel> {
