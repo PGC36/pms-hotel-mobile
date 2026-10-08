@@ -16,6 +16,12 @@ export type StaffTabParamList = {
   Concierge: NavigatorScreenParams<ConciergeStackParamList> | undefined;
 };
 
+export type HousekeepingTabParamList = {
+  RoomsTab: NavigatorScreenParams<HousekeepingStackParamList> | undefined;
+  RequestsTab: NavigatorScreenParams<HousekeepingStackParamList> | undefined;
+  HistoryTab: NavigatorScreenParams<HousekeepingStackParamList> | undefined;
+};
+
 export type ConciergeStackParamList = {
   Inbox: undefined;
   Detail: { requestId: string };
@@ -25,9 +31,7 @@ export type ConciergeStackParamList = {
 };
 
 /**
- * Stack interno de la única pestaña de limpieza (MOV-09). Solicitudes,
- * reporte de desperfectos e historial se agregan aquí — no como pestañas
- * nuevas de `StaffNavigator`.
+ * Rutas de cada pila interna de Limpieza (MOV-09).
  */
 export type HousekeepingStackParamList = {
   RoomList: undefined;

@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useReducer } from 'react';
-import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { HousekeepingStackParamList } from '@/navigation/routes';
@@ -112,39 +111,10 @@ export function RoomListScreen({ navigation }: Props) {
     load();
   }, [load]);
 
-  // Los accesos siguen visibles aunque falle la carga de habitaciones.
   const sections = useMemo(() => buildFloorSections(state.rooms), [state.rooms]);
 
   return (
     <View style={styles.container}>
-      <View style={styles.submenu} accessibilityRole="tablist">
-        <Pressable
-          onPress={() => navigation.navigate('Requests')}
-          accessibilityRole="tab"
-          accessibilityLabel="Solicitudes de limpieza y desperfectos"
-          style={({ pressed }) => [styles.submenuItem, pressed && styles.pressed]}
-        >
-          <MaterialCommunityIcons name="clipboard-list-outline" size={22} color={colors.brand[600]} />
-          <View style={styles.submenuCopy}>
-            <Text style={styles.submenuTitle}>Solicitudes</Text>
-            <Text style={styles.submenuDescription}>Limpieza y desperfectos</Text>
-          </View>
-          <MaterialCommunityIcons name="chevron-right" size={20} color={colors.text.secondary} />
-        </Pressable>
-        <Pressable
-          onPress={() => navigation.navigate('History')}
-          accessibilityRole="tab"
-          accessibilityLabel="Historial de tareas completadas por ti"
-          style={({ pressed }) => [styles.submenuItem, pressed && styles.pressed]}
-        >
-          <MaterialCommunityIcons name="history" size={22} color={colors.brand[600]} />
-          <View style={styles.submenuCopy}>
-            <Text style={styles.submenuTitle}>Historial</Text>
-            <Text style={styles.submenuDescription}>Tareas que has atendido</Text>
-          </View>
-          <MaterialCommunityIcons name="chevron-right" size={20} color={colors.text.secondary} />
-        </Pressable>
-      </View>
       {state.status === 'loading' ? (
         <LoadingState message="Cargando habitaciones..." />
       ) : state.status === 'error' ? (
@@ -210,28 +180,4 @@ const styles = StyleSheet.create({
   separator: {
     height: spacing.sm,
   },
-  submenu: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    gap: spacing.sm,
-  },
-  submenuItem: {
-    minHeight: 68,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.sand[300],
-    backgroundColor: colors.white,
-  },
-  submenuCopy: { flex: 1, gap: 2 },
-  submenuTitle: {
-    ...typography.body,
-    color: colors.text.primary,
-    fontWeight: '700',
-  },
-  submenuDescription: { ...typography.caption, color: colors.text.secondary },
-  pressed: { opacity: 0.65 },
 });
