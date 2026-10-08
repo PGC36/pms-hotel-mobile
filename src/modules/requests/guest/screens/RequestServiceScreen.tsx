@@ -76,7 +76,7 @@ export function RequestServiceScreen() {
 
   const selectedService = services.find((service) => service.id === selectedServiceId);
   const selectedItem = items.find((item) => item.id === selectedItemId);
-  const maxQuantity = selectedItem ? Math.min(5, selectedItem.currentQuantity) : 0;
+  const maxQuantity = selectedItem ? 5 : 0;
 
   const submit = async () => {
     if (isConcierge && !selectedService) {
@@ -205,9 +205,7 @@ export function RequestServiceScreen() {
                 <View style={styles.optionCopy}>
                   <Text style={styles.optionTitle}>{item.name}</Text>
                   {item.description ? <Text style={styles.subtitle}>{item.description}</Text> : null}
-                  <Text style={styles.stockText}>
-                    {available ? `${item.currentQuantity} disponibles · ${item.unit}` : 'No disponible'}
-                  </Text>
+                  <Text style={styles.stockText}>{available ? 'Disponible' : 'No disponible'}</Text>
                 </View>
                 <View style={[styles.radio, selected && styles.radioSelected]} />
               </Pressable>
