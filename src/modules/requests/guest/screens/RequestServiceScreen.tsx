@@ -21,11 +21,13 @@ import {
 } from '../services/guest-request.service';
 
 type Navigation = NativeStackNavigationProp<GuestServicesStackParamList, 'CreateRequest'>;
+const preferredTimes = ['Lo antes posible', 'Por la mañana', 'Por la tarde', 'Esta noche'] as const;
 
 export function RequestServiceScreen() {
   const navigation = useNavigation<Navigation>();
   const { params } = useRoute<RouteProp<GuestServicesStackParamList, 'CreateRequest'>>();
   const [notes, setNotes] = useState('');
+  const [preferredTime, setPreferredTime] = useState<(typeof preferredTimes)[number]>(preferredTimes[0]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [services, setServices] = useState<ConciergeServiceOption[]>([]);
@@ -124,7 +126,10 @@ export function RequestServiceScreen() {
         await createGuestHousekeepingItemRequest(selectedItem!.id, quantity, notes);
       } else {
         const requestDescription = isConcierge ? selectedService!.name : selectedHousekeepingService!.name;
-        await createGuestRequest(params.type, requestDescription, notes,
+        const requestNotes = !isConcierge && housekeepingMode === 'cleaning'
+          ? [preferredTime, notes.trim()].filter(Boolean).join(' · ')
+          : notes;
+        await createGuestRequest(params.type, requestDescription, requestNotes,
           isConcierge ? selectedService?.id : selectedHousekeepingService?.id);
       }
       navigation.replace('RequestList');
@@ -220,6 +225,22 @@ export function RequestServiceScreen() {
               <View style={[styles.radio, selectedHousekeepingServiceId === service.id && styles.radioSelected]} />
             </Pressable>
           ))}
+          <Text style={styles.label}>Momento preferido</Text>
+          <View style={styles.timeOptions} accessibilityRole="radiogroup">
+            {preferredTimes.map((time) => (
+              <Pressable
+                accessibilityRole="radio"
+                accessibilityState={{ selected: preferredTime === time }}
+                key={time}
+                onPress={() => setPreferredTime(time)}
+                style={[styles.timeOption, preferredTime === time && styles.timeOptionSelected]}
+              >
+                <Text style={[styles.timeOptionText, preferredTime === time && styles.timeOptionTextSelected]}>
+                  {time}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
           <Input
             label="Detalles adicionales (opcional)"
             value={notes}
@@ -325,6 +346,11 @@ const styles = StyleSheet.create({
   options: { gap: spacing.sm },
   label: { ...typography.caption, color: colors.text.secondary },
   segmented: { flexDirection: 'row', padding: 4, gap: 4, backgroundColor: colors.sand[100], borderRadius: radius.sm },
+  timeOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  timeOption: { minHeight: 40, justifyContent: 'center', paddingHorizontal: spacing.sm, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.sand[300], backgroundColor: colors.white },
+  timeOptionSelected: { borderColor: colors.brand[600], backgroundColor: colors.sand[100] },
+  timeOptionText: { ...typography.caption, color: colors.text.secondary },
+  timeOptionTextSelected: { color: colors.text.primary, fontWeight: '700' },
   segment: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xs, borderRadius: radius.sm },
   segmentSelected: { backgroundColor: colors.white },
   segmentText: { ...typography.caption, color: colors.text.secondary, textAlign: 'center' },
