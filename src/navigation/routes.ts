@@ -16,6 +16,18 @@ export type StaffTabParamList = {
   Concierge: NavigatorScreenParams<ConciergeStackParamList> | undefined;
 };
 
+export type RoomServiceTabParamList = {
+  OrdersTab: NavigatorScreenParams<RoomServiceStackParamList> | undefined;
+  MenuTab: NavigatorScreenParams<RoomServiceStackParamList> | undefined;
+  HistoryTab: NavigatorScreenParams<RoomServiceStackParamList> | undefined;
+};
+
+export type ConciergeTabParamList = {
+  RequestsTab: NavigatorScreenParams<ConciergeStackParamList> | undefined;
+  RoomsTab: NavigatorScreenParams<ConciergeStackParamList> | undefined;
+  HistoryTab: NavigatorScreenParams<ConciergeStackParamList> | undefined;
+};
+
 export type HousekeepingTabParamList = {
   RoomsTab: NavigatorScreenParams<HousekeepingStackParamList> | undefined;
   RequestsTab: NavigatorScreenParams<HousekeepingStackParamList> | undefined;
