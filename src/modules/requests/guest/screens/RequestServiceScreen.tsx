@@ -13,8 +13,10 @@ import {
   createGuestHousekeepingItemRequest,
   createGuestRequest,
   getGuestConciergeServices,
+  getGuestHousekeepingServices,
   getGuestHousekeepingItems,
   type ConciergeServiceOption,
+  type HousekeepingServiceOption,
   type HousekeepingItemOption,
 } from '../services/guest-request.service';
 
@@ -30,6 +32,10 @@ export function RequestServiceScreen() {
   const [loadingServices, setLoadingServices] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState('');
   const [serviceLoadError, setServiceLoadError] = useState<string | null>(null);
+  const [housekeepingServices, setHousekeepingServices] = useState<HousekeepingServiceOption[]>([]);
+  const [loadingHousekeepingServices, setLoadingHousekeepingServices] = useState(false);
+  const [selectedHousekeepingServiceId, setSelectedHousekeepingServiceId] = useState('');
+  const [housekeepingServiceLoadError, setHousekeepingServiceLoadError] = useState<string | null>(null);
   const [housekeepingMode, setHousekeepingMode] = useState<'cleaning' | 'items'>('cleaning');
   const [items, setItems] = useState<HousekeepingItemOption[]>([]);
   const [loadingItems, setLoadingItems] = useState(false);
@@ -66,15 +72,34 @@ export function RequestServiceScreen() {
       setLoadingItems(false);
     }
   }, []);
+  const loadHousekeepingServices = useCallback(async () => {
+    setLoadingHousekeepingServices(true);
+    setHousekeepingServiceLoadError(null);
+    try {
+      const options = await getGuestHousekeepingServices();
+      setHousekeepingServices(options);
+      setSelectedHousekeepingServiceId((current) => options.some((option) => option.id === current)
+        ? current
+        : options[0]?.id ?? '');
+    } catch (cause) {
+      setHousekeepingServiceLoadError(cause instanceof Error ? cause.message : 'No se pudieron cargar las opciones.');
+    } finally {
+      setLoadingHousekeepingServices(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (isConcierge) void Promise.resolve().then(loadServices);
   }, [isConcierge, loadServices]);
   useEffect(() => {
+    if (!isConcierge && housekeepingMode === 'cleaning') void Promise.resolve().then(loadHousekeepingServices);
+  }, [isConcierge, housekeepingMode, loadHousekeepingServices]);
+  useEffect(() => {
     if (!isConcierge && housekeepingMode === 'items') void Promise.resolve().then(loadItems);
   }, [isConcierge, housekeepingMode, loadItems]);
 
   const selectedService = services.find((service) => service.id === selectedServiceId);
+  const selectedHousekeepingService = housekeepingServices.find((service) => service.id === selectedHousekeepingServiceId);
   const selectedItem = items.find((item) => item.id === selectedItemId);
   const maxQuantity = selectedItem ? 5 : 0;
 
@@ -87,6 +112,10 @@ export function RequestServiceScreen() {
       setError('Selecciona un artículo disponible.');
       return;
     }
+    if (!isConcierge && housekeepingMode === 'cleaning' && !selectedHousekeepingService) {
+      setError('Selecciona una opción de limpieza disponible.');
+      return;
+    }
 
     setSaving(true);
     setError(null);
@@ -94,8 +123,9 @@ export function RequestServiceScreen() {
       if (!isConcierge && housekeepingMode === 'items') {
         await createGuestHousekeepingItemRequest(selectedItem!.id, quantity, notes);
       } else {
-        const requestDescription = isConcierge ? selectedService!.name : 'Solicita limpieza para su habitación';
-        await createGuestRequest(params.type, requestDescription, notes, selectedService?.id);
+        const requestDescription = isConcierge ? selectedService!.name : selectedHousekeepingService!.name;
+        await createGuestRequest(params.type, requestDescription, notes,
+          isConcierge ? selectedService?.id : selectedHousekeepingService?.id);
       }
       navigation.replace('RequestList');
     } catch (cause) {
@@ -170,8 +200,26 @@ export function RequestServiceScreen() {
         </View>
       ) : housekeepingMode === 'cleaning' ? (
         <View style={styles.options}>
-          <Text style={styles.optionTitle}>Limpieza de habitación</Text>
-          <Text style={styles.subtitle}>El equipo de limpieza recibirá tu solicitud.</Text>
+          <Text style={styles.label}>Tipo de limpieza</Text>
+          {loadingHousekeepingServices ? <ActivityIndicator color={colors.brand[600]} /> : null}
+          {!loadingHousekeepingServices && housekeepingServices.length === 0 && !housekeepingServiceLoadError ? (
+            <Text style={styles.subtitle}>No hay opciones de limpieza disponibles por el momento.</Text>
+          ) : null}
+          {housekeepingServices.map((service) => (
+            <Pressable
+              accessibilityRole="radio"
+              accessibilityState={{ selected: selectedHousekeepingServiceId === service.id }}
+              key={service.id}
+              onPress={() => setSelectedHousekeepingServiceId(service.id)}
+              style={[styles.option, selectedHousekeepingServiceId === service.id && styles.optionSelected]}
+            >
+              <View style={styles.optionCopy}>
+                <Text style={styles.optionTitle}>{service.name}</Text>
+                {service.description ? <Text style={styles.subtitle}>{service.description}</Text> : null}
+              </View>
+              <View style={[styles.radio, selectedHousekeepingServiceId === service.id && styles.radioSelected]} />
+            </Pressable>
+          ))}
           <Input
             label="Detalles adicionales (opcional)"
             value={notes}
@@ -249,6 +297,9 @@ export function RequestServiceScreen() {
       {serviceLoadError ? (
         <ErrorState title="No se pudieron cargar los servicios" description={serviceLoadError} onRetry={loadServices} />
       ) : null}
+      {housekeepingServiceLoadError ? (
+        <ErrorState title="No se pudieron cargar las opciones de limpieza" description={housekeepingServiceLoadError} onRetry={loadHousekeepingServices} />
+      ) : null}
       {itemsLoadError ? (
         <ErrorState title="No se pudieron cargar los artículos" description={itemsLoadError} onRetry={loadItems} />
       ) : null}
@@ -260,7 +311,7 @@ export function RequestServiceScreen() {
           ? !selectedService || loadingServices
           : housekeepingMode === 'items'
             ? !selectedItem || loadingItems
-            : false}
+            : !selectedHousekeepingService || loadingHousekeepingServices}
       />
     </ScrollView>
   );

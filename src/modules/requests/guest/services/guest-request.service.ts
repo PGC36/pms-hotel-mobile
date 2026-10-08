@@ -50,6 +50,13 @@ export interface ConciergeServiceOption {
   active: boolean;
 }
 
+export interface HousekeepingServiceOption {
+  id: string;
+  name: string;
+  description: string | null;
+  active: boolean;
+}
+
 export class GuestRequestError extends Error {
   constructor(message: string, public readonly status?: number) {
     super(message);
@@ -123,6 +130,10 @@ export async function getGuestConciergeServices(): Promise<ConciergeServiceOptio
   return request(() => apiClient.get<ConciergeServiceOption[]>('/guest/concierge/services'));
 }
 
+export async function getGuestHousekeepingServices(): Promise<HousekeepingServiceOption[]> {
+  return request(() => apiClient.get<HousekeepingServiceOption[]>('/guest/housekeeping/services'));
+}
+
 export async function getGuestHousekeepingItems(): Promise<HousekeepingItemOption[]> {
   return request(() => apiClient.get<HousekeepingItemOption[]>('/guest/housekeeping/items'));
 }
@@ -161,7 +172,7 @@ export async function createGuestRequest(
   notes?: string,
   serviceId?: string,
 ): Promise<GuestRequestModel> {
-  const body = type === 'concierge'
+  const body = type === 'concierge' || (type === 'housekeeping' && serviceId)
     ? { description: description.trim(), notes: notes?.trim() || null, serviceId }
     : { description: description.trim() };
   const path = type === 'housekeeping' ? '/guest/housekeeping/requests' : '/guest/concierge/requests';
