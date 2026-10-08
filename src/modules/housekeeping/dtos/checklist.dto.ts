@@ -14,3 +14,10 @@ export interface HousekeepingChecklistDTO {
   createdAt: string;
   items: HousekeepingChecklistItemDTO[];
 }
+
+export interface HousekeepingChecklistTemplateDTO {
+  code: string;
+  name: string;
+  items: string[];
+  updatedAt: string;
+}
