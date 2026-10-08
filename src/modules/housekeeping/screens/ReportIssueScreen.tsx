@@ -2,13 +2,12 @@ import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { useAuth } from '@/modules/auth/context/AuthContext';
 import type { HousekeepingStackParamList } from '@/navigation/routes';
 import { Button, Card, Input } from '@/shared/components';
 import { colors, radius, spacing, typography } from '@/shared/theme';
 
 import { ISSUE_PRIORITIES, type IssuePriority } from '../dtos/issue-report.dto';
-import type { IssueReportModel } from '../models/issue-report.model';
+import type { MaintenanceModel } from '../models/maintenance.model';
 import { createIssueReport } from '../services/issue-report.service';
 
 type Props = NativeStackScreenProps<HousekeepingStackParamList, 'ReportIssue'>;
@@ -21,12 +20,10 @@ export const ISSUE_PRIORITY_LABELS: Record<IssuePriority, string> = {
 
 /**
  * Reporte de desperfecto (HU-09). No toca la ocupación ni la limpieza de la
- * habitación: solo crea el reporte mediante `issue-report.service` (mock).
+ * habitación: crea una solicitud maintenance persistida en el backend.
  */
 export function ReportIssueScreen({ route, navigation }: Props) {
   const { roomId, roomNumber } = route.params;
-  const { session } = useAuth();
-  const userId = session?.type === 'staff' ? session.user.id : null;
 
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<IssuePriority | null>(null);
@@ -34,7 +31,7 @@ export function ReportIssueScreen({ route, navigation }: Props) {
   const [priorityError, setPriorityError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [createdReport, setCreatedReport] = useState<IssueReportModel | null>(null);
+  const [createdReport, setCreatedReport] = useState<MaintenanceModel | null>(null);
   // Corta un doble toque antes de que `isSubmitting` llegue al siguiente render.
   const submittingRef = useRef(false);
 
@@ -46,10 +43,6 @@ export function ReportIssueScreen({ route, navigation }: Props) {
     setPriorityError(priority ? null : 'Selecciona una prioridad.');
     setSubmitError(null);
     if (!trimmed || !priority) return;
-    if (!userId) {
-      setSubmitError('No se pudo identificar al usuario en sesión.');
-      return;
-    }
 
     submittingRef.current = true;
     setIsSubmitting(true);
@@ -58,7 +51,6 @@ export function ReportIssueScreen({ route, navigation }: Props) {
         roomId,
         description: trimmed,
         priority,
-        reportedByUserId: userId,
       });
       setCreatedReport(report);
     } catch (error) {
@@ -81,7 +73,7 @@ export function ReportIssueScreen({ route, navigation }: Props) {
             </Text>
             <Text style={styles.body}>
               El desperfecto de la habitación {roomNumber} quedó registrado con prioridad{' '}
-              {ISSUE_PRIORITY_LABELS[createdReport.priority].toLowerCase()}.
+              {priority ? ISSUE_PRIORITY_LABELS[priority].toLowerCase() : 'seleccionada'}.
             </Text>
             <Text style={styles.quote}>“{createdReport.description}”</Text>
           </Card>

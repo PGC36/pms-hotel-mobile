@@ -14,7 +14,15 @@ export type AuthStackParamList = {
 export type StaffTabParamList = {
   Housekeeping: NavigatorScreenParams<HousekeepingStackParamList> | undefined;
   RoomService: NavigatorScreenParams<RoomServiceStackParamList> | undefined;
-  Concierge: undefined;
+  Concierge: NavigatorScreenParams<ConciergeStackParamList> | undefined;
+};
+
+export type ConciergeStackParamList = {
+  Inbox: undefined;
+  Detail: { requestId: string };
+  Rooms: undefined;
+  RoomRequests: { roomId: string; roomNumber: string };
+  History: undefined;
 };
 
 /**
@@ -67,7 +75,7 @@ export type GuestServicesStackParamList = {
   AmenitiesList: undefined;
   AmenityDetail: { amenityId: string };
   RequestList: undefined; // Para housekeeping y concierge requests
-  RequestDetail: { requestId: string, type: 'housekeeping' | 'concierge' };
+  RequestDetail: { requestId: string; type: 'housekeeping' | 'concierge' };
   CreateRequest: { type: 'housekeeping' | 'concierge' };
 };
 

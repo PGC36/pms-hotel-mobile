@@ -70,6 +70,7 @@ export const statusColors = {
     inProgress: { background: colors.state.warning, text: colors.brand[900] },
     completed: { background: colors.state.success, text: colors.white },
     rejected: { background: colors.state.danger, text: colors.white },
+    cancelled: { background: colors.state.muted, text: colors.white },
   },
   /** Limpieza (`Room.housekeepingStatus`). */
   room: {
