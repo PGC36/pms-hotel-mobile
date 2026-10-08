@@ -68,10 +68,6 @@ function isArticleDelivery(description: string): boolean {
   return /^art[ií]culos solicitados:/i.test(description.trim());
 }
 
-function isActiveRequest(status: ServiceRequestStatus): boolean {
-  return status !== 'completed' && status !== 'cancelled' && status !== 'rejected';
-}
-
 export function HousekeepingRequestDetailScreen({ route }: Props) {
   const { taskId } = route.params;
   const [state, dispatch] = useReducer(reducer, { status: 'loading' });
@@ -87,7 +83,7 @@ export function HousekeepingRequestDetailScreen({ route }: Props) {
       const entry = await getHousekeepingEntryById(taskId);
       const checklist = entry?.kind === 'stayover' &&
         !isArticleDelivery(entry.request.description) &&
-        isActiveRequest(entry.request.status)
+        entry.request.status === 'inProgress'
         ? await getOrCreateRequestChecklist(entry.request.roomId, entry.request.id)
         : null;
       maintenanceRef.current = entry?.kind === 'maintenance' ? entry.request : null;
@@ -139,8 +135,14 @@ export function HousekeepingRequestDetailScreen({ route }: Props) {
       dispatch({
         type: 'LOADED',
         entry: { kind: 'stayover', request, task: mapStayoverToTask(request) },
-        checklist: state.checklist,
+        checklist: action === 'start' ? null : state.checklist,
       });
+      if (action === 'start' && !isArticleDelivery(request.description)) {
+        dispatch({
+          type: 'CHECKLIST',
+          checklist: await getOrCreateRequestChecklist(request.roomId, request.id),
+        });
+      }
       setConfirmComplete(false);
     } catch (error) {
       setActionError(errorMessage(error));
@@ -213,7 +215,7 @@ export function HousekeepingRequestDetailScreen({ route }: Props) {
           <Text style={styles.body}>{request.notes}</Text>
         </Card>
       ) : null}
-      {!isArticleDelivery(request.description) && isActiveRequest(request.status) ? (
+      {!isArticleDelivery(request.description) && request.status === 'inProgress' ? (
         <Card style={styles.confirm}>
           <Text style={styles.sectionTitle}>Checklist de limpieza</Text>
           {checklist ? (
@@ -303,7 +305,7 @@ export function HousekeepingRequestDetailScreen({ route }: Props) {
         ) : (
           <Button
             label="Completar solicitud"
-            disabled={Boolean(checklist && checklist.status !== 'completed')}
+            disabled={!isArticleDelivery(request.description) && (!checklist || checklist.status !== 'completed')}
             onPress={() => setConfirmComplete(true)}
             fullWidth
           />
