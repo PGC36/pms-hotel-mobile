@@ -3,7 +3,6 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
 /** Rutas de `AuthNavigator` — accesibles solo sin sesión. */
 export type AuthStackParamList = {
   Login: undefined;
-  GuestLogin: undefined;
   LinkBooking: undefined;
 };
 
