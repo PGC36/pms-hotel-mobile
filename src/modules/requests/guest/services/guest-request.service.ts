@@ -25,6 +25,13 @@ interface ConciergeRequestDTO {
   updatedAt: string;
 }
 
+export interface ConciergeServiceOption {
+  id: string;
+  name: string;
+  description: string | null;
+  active: boolean;
+}
+
 export class GuestRequestError extends Error {
   constructor(message: string, public readonly status?: number) {
     super(message);
@@ -94,6 +101,10 @@ export async function getGuestRequests(): Promise<GuestRequestModel[]> {
   );
 }
 
+export async function getGuestConciergeServices(): Promise<ConciergeServiceOption[]> {
+  return request(() => apiClient.get<ConciergeServiceOption[]>('/guest/concierge/services'));
+}
+
 export async function getGuestRequest(id: string, type: GuestRequestType): Promise<GuestRequestModel> {
   if (type === 'housekeeping') {
     const requests = await request(() => apiClient.get<HousekeepingRequestDTO[]>('/guest/housekeeping/requests'));
@@ -111,8 +122,11 @@ export async function createGuestRequest(
   type: GuestRequestType,
   description: string,
   notes?: string,
+  serviceId?: string,
 ): Promise<GuestRequestModel> {
-  const body = type === 'concierge' ? { description: description.trim(), notes: notes?.trim() || null } : { description: description.trim() };
+  const body = type === 'concierge'
+    ? { description: description.trim(), notes: notes?.trim() || null, serviceId }
+    : { description: description.trim() };
   const path = type === 'housekeeping' ? '/guest/housekeeping/requests' : '/guest/concierge/requests';
   const dto = await request(() =>
     apiClient.post<HousekeepingRequestDTO | ConciergeRequestDTO>(path, body),
