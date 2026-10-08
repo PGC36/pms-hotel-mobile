@@ -40,21 +40,26 @@ Guía para agentes de IA (Claude Code, Codex, Copilot, Cursor u otro) que trabaj
   - **Aislamiento de Rol:** `StaffNavigator` valida el rol resuelto y sólo expone las rutas permitidas para dicho rol.
 - **HOUSEKEEPING-CHECKLIST (Issue #29)**: el detalle de habitación consulta el checklist de recambio real por `roomId`, permite marcar y guardar cada punto en el backend y bloquea `complete` hasta que todos estén verificados; `inspect` exige el checklist completado. Los rechazos HTTP 409 se tratan como cambios de estado y recargan habitación y checklist.
 - **STAFF-OPERATIONS (Issue #22)**: Conserjería usa `/concierge/requests` para bandeja, detalle, agrupación por habitación, historial y transiciones permitidas por backend. Limpieza consume solicitudes stayover y mantenimiento reales; registra desperfectos como mantenimiento y permite checklists únicamente para solicitudes que el backend soporta. No se crean plantillas o tareas locales para simular persistencia.
+- **CI/CD (Issue #24)**: `.github/workflows/ci.yml` (PR a `develop`/`main` y push a `main`: formato, tipos, lint, pruebas con cobertura c8, `expo export` y SonarQube + Quality Gate "Aurora Mobile"), `.github/workflows/mobile-eas-build.yml` (merge a `develop` → EAS `preview`; tag `vX.Y.Z` → EAS `production` + GitHub Release; nunca `eas submit`), `Jenkinsfile` equivalente, `eas.json`, `sonar-project.properties` y `scripts/sonarqube/setup-sonarqube.sh`. Sin secretos, SonarQube y EAS se reportan como **omitidos**, nunca como aprobados. Todo en `docs/CI-CD.md`, incluidos los prerequisitos externos pendientes.
 - El resto de pantallas y componentes de módulos de dominio siguen siendo placeholders vacíos — llegan en MOV-11 en adelante. No asumas que un archivo tiene contenido solo porque existe: verifica antes de editar.
 - Mantén esta sección al día cada vez que termines un ticket de Fase 0/1/2 — así el siguiente agente no tiene que reconstruir el estado leyendo commits.
 
 ## Comandos
 
 ```bash
-npm install
-npx expo start        # servidor de desarrollo
-npm run lint           # ESLint (eslint-config-expo)
-npm run format          # Prettier — escribe cambios
-npm run format:check    # Prettier — solo verifica
-npx tsc --noEmit        # chequeo de tipos (usa el alias @/ vía tsconfig paths)
+npm ci
+npx expo start          # servidor de desarrollo
+npm run lint             # ESLint (eslint-config-expo)
+npm run typecheck        # tsc --noEmit (usa el alias @/ vía tsconfig paths)
+npm test                 # scripts/test-*.ts con tsx
+npm run test:coverage    # pruebas + cobertura c8 (coverage/lcov.info, la consume SonarQube)
+npm run format           # Prettier — escribe cambios
+npm run format:check     # Prettier — solo verifica
+npm run build:validate   # expo export android/ios/web
+npm run ci               # pipeline completo de validación (igual que GitHub Actions/Jenkins)
 ```
 
-`npm run lint` y `npx tsc --noEmit` deben correr limpios antes de dar por terminado cualquier cambio.
+`npm run ci` debe correr limpio antes de dar por terminado cualquier cambio: es exactamente lo que exige el PR (ver `docs/CI-CD.md`). Una prueba nueva es un `scripts/test-<tema>.ts` agregado a la cadena de `npm test`.
 
 ## Reglas no negociables
 
