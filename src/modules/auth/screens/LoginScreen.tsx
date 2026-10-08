@@ -15,7 +15,8 @@ const DEMO_ACCOUNTS = [
   { label: 'Limpieza', email: 'limpieza@aurora.test', password: 'limpieza', type: 'staff' },
   { label: 'Room Service', email: 'roomservice@aurora.test', password: 'roomservice', type: 'staff' },
   { label: 'Conserjería', email: 'conserjeria@aurora.test', password: 'conserjeria', type: 'staff' },
-  { label: 'Carlos Reyes · Huésped', email: 'carlos.demo@aurora.test', password: 'huesped2', type: 'guest' },
+  { label: 'Ana Morales', email: 'ana.demo@aurora.test', password: 'huesped1', type: 'guest' },
+  { label: 'Carlos Reyes', email: 'carlos.demo@aurora.test', password: 'huesped2', type: 'guest' },
 ] as const;
 
 export function LoginScreen({ navigation }: Props) {
@@ -104,30 +105,35 @@ export function LoginScreen({ navigation }: Props) {
         />
       </View>
 
-      <View style={styles.demoSection}>
-        <Text style={styles.demoTitle}>Acceso rápido · Demo</Text>
-        <Text style={styles.demoGroup}>Personal</Text>
-        {DEMO_ACCOUNTS.filter((account) => account.type === 'staff').map((account) => (
-          <Button
-            key={account.email}
-            label={account.label}
-            variant="secondary"
-            onPress={() => handleDemoAccess(account)}
-            disabled={isSubmitting}
-            loading={submittingDemoEmail === account.email}
-            fullWidth
-          />
-        ))}
-        <Text style={styles.demoGroup}>Huéspedes</Text>
-        <Button
-          label="Carlos Reyes"
-          variant="secondary"
-          onPress={() => handleDemoAccess(DEMO_ACCOUNTS[3])}
-          disabled={isSubmitting}
-          loading={submittingDemoEmail === DEMO_ACCOUNTS[3].email}
-          fullWidth
-        />
-      </View>
+      {__DEV__ ? (
+        <View style={styles.demoSection}>
+          <Text style={styles.demoTitle}>Acceso rápido · Demo</Text>
+          <Text style={styles.demoGroup}>Personal</Text>
+          {DEMO_ACCOUNTS.filter((account) => account.type === 'staff').map((account) => (
+            <Button
+              key={account.email}
+              label={account.label}
+              variant="secondary"
+              onPress={() => handleDemoAccess(account)}
+              disabled={isSubmitting}
+              loading={submittingDemoEmail === account.email}
+              fullWidth
+            />
+          ))}
+          <Text style={styles.demoGroup}>Huéspedes</Text>
+          {DEMO_ACCOUNTS.filter((account) => account.type === 'guest').map((account) => (
+            <Button
+              key={account.email}
+              label={account.label}
+              variant="secondary"
+              onPress={() => handleDemoAccess(account)}
+              disabled={isSubmitting}
+              loading={submittingDemoEmail === account.email}
+              fullWidth
+            />
+          ))}
+        </View>
+      ) : null}
 
       <Button
         label="¿Tienes un código de reserva? Vincular estancia"
