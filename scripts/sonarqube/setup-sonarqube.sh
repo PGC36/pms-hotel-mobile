@@ -1,39 +1,48 @@
 #!/usr/bin/env bash
-# Configura SonarQube self-hosted para el backend:
+# Configura SonarQube self-hosted para la app móvil (mismo servidor que el backend):
 #   1. Espera a que el servidor esté UP.
 #   2. Cambia la contraseña inicial de admin (si sigue siendo admin/admin).
-#   3. Crea el proyecto backend.
-#   4. Crea el quality gate "Aurora Backend" con los umbrales del equipo y lo asigna al proyecto.
+#   3. Crea el proyecto móvil.
+#   4. Crea el quality gate "Aurora Mobile" con los umbrales del equipo y lo asigna al proyecto.
 #   5. Genera un token de análisis de proyecto (se imprime una sola vez).
 #
-# Uso:
+# Adaptado de pms-hotel-boutique-backend/scripts/sonarqube/setup-sonarqube.sh. Diferencias:
+# defaults del proyecto móvil, cobertura mínima configurable (SONAR_COVERAGE_MIN, 60 por
+# defecto en vez de 70 fijo) y carga de .env.local además de .env.
+#
+# Uso (el servidor se levanta desde el repo del backend:
+#   docker compose -f docker-compose.sonarqube.yml up -d):
 #   SONAR_ADMIN_PASSWORD='NuevaClave#2026' ./scripts/sonarqube/setup-sonarqube.sh
 #
 # Variables (opcionales salvo SONAR_ADMIN_PASSWORD):
 #   SONAR_HOST_URL        default http://localhost:9000
-#   SONAR_PROJECT_KEY     default pms-hotel-boutique-backend
-#   SONAR_PROJECT_NAME    default "PMS Hotel Boutique Backend"
+#   SONAR_PROJECT_KEY     default pms-hotel-mobile
+#   SONAR_PROJECT_NAME    default "PMS Hotel Boutique Mobile"
 #   SONAR_ADMIN_PASSWORD  nueva contraseña de admin (mín. 12 caracteres, mayúscula, minúscula, número y símbolo)
-#   SONAR_GATE_NAME       default "Aurora Backend"
+#   SONAR_GATE_NAME       default "Aurora Mobile"
+#   SONAR_COVERAGE_MIN    default 60 (cobertura mínima de código nuevo, en %)
 #   SONAR_TOKEN_NAME      default ci-<projectKey>
 #   SONAR_REGENERATE_TOKEN=true  revoca y vuelve a generar el token (invalida el SONAR_TOKEN actual)
 #
-# Si existe .env en la raíz del repo se carga automáticamente (las variables ya exportadas tienen prioridad).
+# Si existen .env o .env.local en la raíz del repo se cargan automáticamente (las variables ya
+# exportadas tienen prioridad; ambos archivos están en .gitignore).
 set -euo pipefail
 
-ENV_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/.env"
-if [[ -f "$ENV_FILE" ]]; then
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+for ENV_FILE in "$REPO_ROOT/.env" "$REPO_ROOT/.env.local"; do
+  [[ -f "$ENV_FILE" ]] || continue
   while IFS='=' read -r key value; do
     [[ "$key" =~ ^[A-Z_][A-Z0-9_]*$ ]] || continue
     [[ -n "${!key:-}" ]] || export "$key=${value%$'\r'}"
   done < "$ENV_FILE"
-fi
+done
 
 SONAR_HOST_URL="${SONAR_HOST_URL:-http://localhost:9000}"
 SONAR_HOST_URL="${SONAR_HOST_URL%/}"
-SONAR_PROJECT_KEY="${SONAR_PROJECT_KEY:-pms-hotel-boutique-backend}"
-SONAR_PROJECT_NAME="${SONAR_PROJECT_NAME:-PMS Hotel Boutique Backend}"
-SONAR_GATE_NAME="${SONAR_GATE_NAME:-Aurora Backend}"
+SONAR_PROJECT_KEY="${SONAR_PROJECT_KEY:-pms-hotel-mobile}"
+SONAR_PROJECT_NAME="${SONAR_PROJECT_NAME:-PMS Hotel Boutique Mobile}"
+SONAR_GATE_NAME="${SONAR_GATE_NAME:-Aurora Mobile}"
+SONAR_COVERAGE_MIN="${SONAR_COVERAGE_MIN:-60}"
 SONAR_TOKEN_NAME="${SONAR_TOKEN_NAME:-ci-${SONAR_PROJECT_KEY}}"
 
 if [[ -z "${SONAR_ADMIN_PASSWORD:-}" ]]; then
@@ -127,7 +136,7 @@ add_condition() {
 add_condition "0 bugs nuevos"               GT 0  new_bugs                     new_software_quality_reliability_issues
 add_condition "0 vulnerabilidades nuevas"   GT 0  new_vulnerabilities          new_software_quality_security_issues
 add_condition "Rating A en code smells"     GT 1  new_maintainability_rating   new_software_quality_maintainability_rating
-add_condition "Coverage >= 70% código nuevo" LT 70 new_coverage
+add_condition "Coverage >= ${SONAR_COVERAGE_MIN}% código nuevo" LT "${SONAR_COVERAGE_MIN}" new_coverage
 add_condition "Duplicación <= 3%"           GT 3  new_duplicated_lines_density
 
 api POST /api/qualitygates/select \

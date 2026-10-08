@@ -1,0 +1,198 @@
+# Builds nativos con Expo EAS (equivalente en Jenkins: etapas "EAS build" del Jenkinsfile).
+# Ver docs/CI-CD.md.
+#
+# - Push a develop (merge de PR)  -> perfil "preview": APK Android instalable + build de simulador iOS.
+# - Tag vX.Y.Z                    -> perfil "production": AAB Android firmado + build de simulador iOS,
+#                                    adjuntos a un GitHub Release. NO se publica en tiendas.
+# - workflow_dispatch             -> perfil a elección.
+#
+# Siempre corre antes la validación completa (ci.yml). Si falta EXPO_TOKEN o el proyecto no está
+# vinculado a EAS (extra.eas.projectId en app.json), los builds se omiten con un aviso.
+name: Mobile EAS Build
+
+on:
+  push:
+    branches: [develop]
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Perfil de eas.json
+        type: choice
+        options: [preview, production]
+        default: preview
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-eas-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validación
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
+  resolve:
+    name: Resolver perfil y prerequisitos
+    needs: validate
+    runs-on: ubuntu-latest
+    outputs:
+      profile: ${{ steps.profile.outputs.profile }}
+      version: ${{ steps.profile.outputs.version }}
+      enabled: ${{ steps.prereq.outputs.enabled }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Perfil y versión
+        id: profile
+        env:
+          INPUT_PROFILE: ${{ inputs.profile }}
+        run: |
+          version=$(node -p "require('./app.json').expo.version")
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            profile=production
+            if [ "${GITHUB_REF_NAME#v}" != "$version" ]; then
+              echo "::error title=Versión inconsistente::El tag $GITHUB_REF_NAME no coincide con expo.version=$version de app.json. Actualiza app.json en main antes de etiquetar."
+              exit 1
+            fi
+          elif [ -n "$INPUT_PROFILE" ]; then
+            profile="$INPUT_PROFILE"
+          else
+            profile=preview
+          fi
+          echo "profile=$profile" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Perfil: $profile — versión visible: $version"
+
+      - name: Verificar EXPO_TOKEN y proyecto EAS
+        id: prereq
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::notice title=EAS build omitido::EXPO_TOKEN no está configurado. No se generó ningún build."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -z "$(node -p "require('./app.json').expo.extra?.eas?.projectId ?? ''")" ]; then
+            echo "::notice title=EAS build omitido::app.json no tiene extra.eas.projectId. Ejecuta 'npx eas-cli init' y commitea app.json."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: EAS ${{ needs.resolve.outputs.profile }} (${{ matrix.platform }})
+    needs: resolve
+    if: needs.resolve.outputs.enabled == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [android, ios]
+    env:
+      PROFILE: ${{ needs.resolve.outputs.profile }}
+      VERSION: ${{ needs.resolve.outputs.version }}
+      PLATFORM: ${{ matrix.platform }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: eas build
+        id: eas
+        run: |
+          eas_profile="$PROFILE"
+          # Sin cuenta Apple Developer no hay firma iOS: la release de iOS es build de simulador.
+          if [ "$PLATFORM" = "ios" ] && [ "$PROFILE" = "production" ]; then
+            eas_profile=production-simulator
+          fi
+          eas build --platform "$PLATFORM" --profile "$eas_profile" \
+            --non-interactive --wait --json > eas-build.json
+          node -e '
+            const [b] = require("./eas-build.json");
+            const url = b.artifacts.buildUrl;
+            const file = url.split("?")[0].split("/").pop();
+            const ext = file.includes(".") ? file.slice(file.indexOf(".") + 1) : "bin";
+            console.log(`url=${url}`);
+            console.log(`ext=${ext}`);
+            console.log(`id=${b.id}`);
+            console.log(`buildNumber=${b.appBuildVersion ?? ""}`);
+          ' >> "$GITHUB_OUTPUT"
+          echo "eas_profile=$eas_profile" >> "$GITHUB_OUTPUT"
+
+      - name: Descargar artefacto
+        env:
+          URL: ${{ steps.eas.outputs.url }}
+          EXT: ${{ steps.eas.outputs.ext }}
+        run: |
+          mkdir -p artifact
+          curl -fsSL -o "artifact/pms-hotel-mobile-${VERSION}-${PROFILE}-${PLATFORM}.${EXT}" "$URL"
+          ls -la artifact
+
+      - name: Conservar artefacto para QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: eas-${{ env.PROFILE }}-${{ env.PLATFORM }}
+          path: artifact/
+          retention-days: 30
+
+      - name: Resumen
+        env:
+          URL: ${{ steps.eas.outputs.url }}
+          BUILD_ID: ${{ steps.eas.outputs.id }}
+          BUILD_NUMBER: ${{ steps.eas.outputs.buildNumber }}
+          EAS_PROFILE: ${{ steps.eas.outputs.eas_profile }}
+        run: |
+          {
+            echo "## EAS ${EAS_PROFILE} — ${PLATFORM}"
+            echo ""
+            echo "- Versión: \`${VERSION}\` (build \`${BUILD_NUMBER}\`)"
+            echo "- Build EAS: \`${BUILD_ID}\`"
+            echo "- Descarga directa (EAS): ${URL}"
+            echo "- También disponible como artefacto de este run: \`eas-${PROFILE}-${PLATFORM}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  release:
+    name: GitHub Release (sin publicar en tiendas)
+    needs: [resolve, build]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Descargar artefactos
+        uses: actions/download-artifact@v4
+        with:
+          pattern: eas-production-*
+          path: release
+          merge-multiple: true
+
+      - name: Crear release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" release/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Mobile $GITHUB_REF_NAME" \
+            --generate-notes \
+            --notes "Builds EAS del perfil production. Android: AAB firmado con el keystore administrado por EAS. iOS: build de simulador (no hay cuenta Apple Developer). No se publicó en App Store ni Play Store."
