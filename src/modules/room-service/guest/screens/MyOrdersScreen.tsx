@@ -34,9 +34,14 @@ export function MyOrdersScreen() {
       setRefreshing(false);
     }
   }, []);
-  useFocusEffect(useCallback(() => { void load(); }, [load]));
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
   if (loading && !orders.length) return <LoadingState message="Cargando pedidos..." />;
-  if (error && !orders.length) return <ErrorState title="No pudimos cargar tus pedidos" description={error} onRetry={load} />;
+  if (error && !orders.length)
+    return <ErrorState title="No pudimos cargar tus pedidos" description={error} onRetry={load} />;
 
   return (
     <View style={styles.container}>
@@ -45,17 +50,50 @@ export function MyOrdersScreen() {
         data={orders}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(); }} />}
-        ListEmptyComponent={<EmptyState title="Aún no tienes pedidos" description="Tus pedidos de Room Service aparecerán aquí." />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              void load();
+            }}
+          />
+        }
+        ListEmptyComponent={
+          <EmptyState
+            title="Aún no tienes pedidos"
+            description="Tus pedidos de Room Service aparecerán aquí."
+          />
+        }
         renderItem={({ item }) => (
           <Card style={styles.card}>
             <View style={styles.row}>
               <Text style={styles.title}>Pedido {item.id.slice(0, 8)}</Text>
-              <Badge label={ORDER_STATUS_LABELS[item.status]} variant={item.status === 'delivered' ? 'success' : item.status === 'rejected' || item.status === 'cancelled' ? 'neutral' : 'info'} />
+              <Badge
+                label={ORDER_STATUS_LABELS[item.status]}
+                variant={
+                  item.status === 'delivered'
+                    ? 'success'
+                    : item.status === 'rejected' || item.status === 'cancelled'
+                      ? 'neutral'
+                      : 'info'
+                }
+              />
             </View>
-            <Text style={styles.description}>{item.itemsCount} artículos · {formatMoney(item.totalCents, item.currency)}</Text>
-            <Text style={styles.meta}>{item.items.map((orderItem) => `${orderItem.quantity} × ${orderItem.productName}`).join(', ')}</Text>
-            <Text style={styles.link} onPress={() => navigation.navigate('OrderDetail', { orderId: item.id })}>Ver seguimiento</Text>
+            <Text style={styles.description}>
+              {item.itemsCount} artículos · {formatMoney(item.totalCents, item.currency)}
+            </Text>
+            <Text style={styles.meta}>
+              {item.items
+                .map((orderItem) => `${orderItem.quantity} × ${orderItem.productName}`)
+                .join(', ')}
+            </Text>
+            <Text
+              style={styles.link}
+              onPress={() => navigation.navigate('OrderDetail', { orderId: item.id })}
+            >
+              Ver seguimiento
+            </Text>
           </Card>
         )}
       />
@@ -67,7 +105,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.sand[50] },
   list: { padding: spacing.md, gap: spacing.sm, flexGrow: 1 },
   card: { gap: spacing.sm },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
   title: { ...typography.bodyLarge, fontWeight: '600' },
   description: { ...typography.body, color: colors.text.primary },
   meta: { ...typography.bodySmall, color: colors.text.secondary },

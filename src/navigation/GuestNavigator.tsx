@@ -1,4 +1,7 @@
-import { createBottomTabNavigator, type BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import {
+  createBottomTabNavigator,
+  type BottomTabNavigationProp,
+} from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React, { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
@@ -53,12 +56,36 @@ function GuestStayNavigator() {
 function GuestServicesNavigator() {
   return (
     <ServicesStack.Navigator>
-      <ServicesStack.Screen name="ServicesHome" component={GuestServicesHomeScreen} options={{ title: 'Servicios' }} />
-      <ServicesStack.Screen name="AmenitiesList" component={AmenitiesListScreen} options={{ title: 'Amenidades' }} />
-      <ServicesStack.Screen name="AmenityDetail" component={AmenityDetailScreen} options={{ title: 'Amenidad' }} />
-      <ServicesStack.Screen name="RequestList" component={MyRequestsScreen} options={{ title: 'Mis solicitudes' }} />
-      <ServicesStack.Screen name="RequestDetail" component={GuestRequestDetailScreen} options={{ title: 'Detalle' }} />
-      <ServicesStack.Screen name="CreateRequest" component={RequestServiceScreen} options={{ title: 'Nueva solicitud' }} />
+      <ServicesStack.Screen
+        name="ServicesHome"
+        component={GuestServicesHomeScreen}
+        options={{ title: 'Servicios' }}
+      />
+      <ServicesStack.Screen
+        name="AmenitiesList"
+        component={AmenitiesListScreen}
+        options={{ title: 'Amenidades' }}
+      />
+      <ServicesStack.Screen
+        name="AmenityDetail"
+        component={AmenityDetailScreen}
+        options={{ title: 'Amenidad' }}
+      />
+      <ServicesStack.Screen
+        name="RequestList"
+        component={MyRequestsScreen}
+        options={{ title: 'Mis solicitudes' }}
+      />
+      <ServicesStack.Screen
+        name="RequestDetail"
+        component={GuestRequestDetailScreen}
+        options={{ title: 'Detalle' }}
+      />
+      <ServicesStack.Screen
+        name="CreateRequest"
+        component={RequestServiceScreen}
+        options={{ title: 'Nueva solicitud' }}
+      />
     </ServicesStack.Navigator>
   );
 }
@@ -67,17 +94,41 @@ function GuestRoomServiceNavigator() {
   return (
     <CartProvider>
       <RoomServiceStack.Navigator>
-        <RoomServiceStack.Screen name="Menu" component={MenuScreen} options={{ title: 'Room Service' }} />
-        <RoomServiceStack.Screen name="ProductDetail" component={ProductDetailScreen} options={{ title: 'Producto' }} />
-        <RoomServiceStack.Screen name="Cart" component={CartScreen} options={{ title: 'Carrito' }} />
-        <RoomServiceStack.Screen name="Orders" component={MyOrdersScreen} options={{ title: 'Mis pedidos' }} />
-        <RoomServiceStack.Screen name="OrderDetail" component={OrderTrackingScreen} options={{ title: 'Seguimiento' }} />
+        <RoomServiceStack.Screen
+          name="Menu"
+          component={MenuScreen}
+          options={{ title: 'Room Service' }}
+        />
+        <RoomServiceStack.Screen
+          name="ProductDetail"
+          component={ProductDetailScreen}
+          options={{ title: 'Producto' }}
+        />
+        <RoomServiceStack.Screen
+          name="Cart"
+          component={CartScreen}
+          options={{ title: 'Carrito' }}
+        />
+        <RoomServiceStack.Screen
+          name="Orders"
+          component={MyOrdersScreen}
+          options={{ title: 'Mis pedidos' }}
+        />
+        <RoomServiceStack.Screen
+          name="OrderDetail"
+          component={OrderTrackingScreen}
+          options={{ title: 'Seguimiento' }}
+        />
       </RoomServiceStack.Navigator>
     </CartProvider>
   );
 }
 
-function GuestNotificationsNavigator({ onUnreadCountChange }: { onUnreadCountChange: (count: number) => void }) {
+function GuestNotificationsNavigator({
+  onUnreadCountChange,
+}: {
+  onUnreadCountChange: (count: number) => void;
+}) {
   return (
     <NotificationsStack.Navigator>
       <NotificationsStack.Screen name="Inbox" options={{ title: 'Notificaciones' }}>
@@ -93,12 +144,26 @@ export function GuestNavigator() {
   return (
     <Tab.Navigator screenOptions={{ headerShown: false }}>
       <Tab.Screen name="StayTab" component={GuestStayNavigator} options={{ title: 'Estadía' }} />
-      <Tab.Screen name="ServicesTab" component={GuestServicesNavigator} options={{ title: 'Servicios' }} />
-      <Tab.Screen name="RoomServiceTab" component={GuestRoomServiceNavigator} options={{ title: 'Room Service' }} />
+      <Tab.Screen
+        name="ServicesTab"
+        component={GuestServicesNavigator}
+        options={{ title: 'Servicios' }}
+      />
+      <Tab.Screen
+        name="RoomServiceTab"
+        component={GuestRoomServiceNavigator}
+        options={{ title: 'Room Service' }}
+      />
       <Tab.Screen
         name="NotificationsTab"
         options={{ title: 'Avisos', tabBarBadge: unreadCount > 0 ? unreadCount : undefined }}
-        listeners={{ focus: () => { void fetchUnreadCount().then(setUnreadCount).catch(() => undefined); } }}
+        listeners={{
+          focus: () => {
+            void fetchUnreadCount()
+              .then(setUnreadCount)
+              .catch(() => undefined);
+          },
+        }}
       >
         {() => <GuestNotificationsNavigator onUnreadCountChange={setUnreadCount} />}
       </Tab.Screen>

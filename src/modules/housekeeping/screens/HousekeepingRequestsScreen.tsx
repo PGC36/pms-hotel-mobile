@@ -12,7 +12,8 @@ const CONFIG: TaskListScreenConfig = {
   emptyIcon: '🧺',
   emptyTitle: 'No hay solicitudes',
   emptyDescription: 'Cuando un huésped pida limpieza o artículos aparecerá aquí.',
-  getErrorDescription: (error) => error instanceof HousekeepingServiceError ? error.message : undefined,
+  getErrorDescription: (error) =>
+    error instanceof HousekeepingServiceError ? error.message : undefined,
 };
 
 /** Bandeja de solicitudes de Limpieza: solo configura la bandeja genérica de `tasks`. */

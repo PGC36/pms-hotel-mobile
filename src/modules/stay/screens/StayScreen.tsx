@@ -45,7 +45,11 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-export function StayScreen({ onNavigateToServices, onNavigateToRoomService, onNavigateToNotifications }: {
+export function StayScreen({
+  onNavigateToServices,
+  onNavigateToRoomService,
+  onNavigateToNotifications,
+}: {
   onNavigateToServices: () => void;
   onNavigateToRoomService: () => void;
   onNavigateToNotifications: () => void;
@@ -113,7 +117,6 @@ export function StayScreen({ onNavigateToServices, onNavigateToRoomService, onNa
     );
   }
 
-
   return (
     <View style={styles.screen}>
       <StayHeader guestName={stay.guestFullName} roomNumber={stay.roomNumber} />
@@ -126,7 +129,6 @@ export function StayScreen({ onNavigateToServices, onNavigateToRoomService, onNa
             tintColor={colors.brand[600]}
           />
         }
-
       >
         <View style={styles.quickActions}>
           <Button label="Servicios" variant="secondary" onPress={onNavigateToServices} />

@@ -6,7 +6,6 @@ import { LoginScreen } from '@/modules/auth/screens/LoginScreen';
 
 import type { AuthStackParamList } from './routes';
 
-
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
 /** Sin sesión: acceso a login de huéspedes (flujo principal), login de personal o vincular reserva. */
@@ -19,4 +18,3 @@ export function AuthNavigator() {
     </Stack.Navigator>
   );
 }
-

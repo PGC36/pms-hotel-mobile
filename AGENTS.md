@@ -43,7 +43,6 @@ Guía para agentes de IA (Claude Code, Codex, Copilot, Cursor u otro) que trabaj
 - El resto de pantallas y componentes de módulos de dominio siguen siendo placeholders vacíos — llegan en MOV-11 en adelante. No asumas que un archivo tiene contenido solo porque existe: verifica antes de editar.
 - Mantén esta sección al día cada vez que termines un ticket de Fase 0/1/2 — así el siguiente agente no tiene que reconstruir el estado leyendo commits.
 
-
 ## Comandos
 
 ```bash

@@ -26,7 +26,9 @@ export function GuestLoginScreen({ navigation }: Props) {
       await loginGuest(email.trim(), password);
     } catch (submitError) {
       setError(
-        submitError instanceof Error ? submitError.message : 'No se pudo iniciar sesión como huésped.',
+        submitError instanceof Error
+          ? submitError.message
+          : 'No se pudo iniciar sesión como huésped.',
       );
     } finally {
       setIsSubmitting(false);

@@ -29,10 +29,15 @@ export function AmenityDetailScreen() {
     }
   }, [params.amenityId]);
 
-  useFocusEffect(useCallback(() => { void load(); }, [load]));
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   if (loading && !amenity) return <LoadingState message="Cargando amenidad..." />;
-  if (error && !amenity) return <ErrorState title="Amenidad no disponible" description={error} onRetry={load} />;
+  if (error && !amenity)
+    return <ErrorState title="Amenidad no disponible" description={error} onRetry={load} />;
   if (!amenity) return null;
 
   return (
@@ -43,7 +48,10 @@ export function AmenityDetailScreen() {
     >
       <View style={styles.heading}>
         <Text style={styles.title}>{amenity.name}</Text>
-        <Badge label={amenity.isActive ? 'Disponible' : 'Cerrada'} variant={amenity.isActive ? 'success' : 'neutral'} />
+        <Badge
+          label={amenity.isActive ? 'Disponible' : 'Cerrada'}
+          variant={amenity.isActive ? 'success' : 'neutral'}
+        />
       </View>
       <Text style={styles.description}>{amenity.description}</Text>
       <View style={styles.detailRow}>
@@ -66,10 +74,20 @@ export function AmenityDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.sand[50] },
   content: { padding: spacing.md, gap: spacing.md },
-  heading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  heading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
   title: { ...typography.h2, flex: 1 },
   description: { ...typography.body, color: colors.text.secondary },
-  detailRow: { paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.sand[200], gap: spacing.xs },
+  detailRow: {
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.sand[200],
+    gap: spacing.xs,
+  },
   label: { ...typography.caption, color: colors.text.muted },
   value: { ...typography.body, color: colors.text.primary },
   inlineError: { ...typography.caption, color: colors.state.danger },

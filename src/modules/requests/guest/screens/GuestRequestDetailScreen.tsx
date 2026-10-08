@@ -13,7 +13,12 @@ import type { GuestRequestModel, GuestRequestStatus } from '../models/guest-requ
 import { getGuestRequest } from '../services/guest-request.service';
 
 const labels: Record<GuestRequestStatus, string> = {
-  pending: 'Pendiente', accepted: 'Aceptada', inProgress: 'En progreso', completed: 'Completada', rejected: 'Rechazada', cancelled: 'Cancelada',
+  pending: 'Pendiente',
+  accepted: 'Aceptada',
+  inProgress: 'En progreso',
+  completed: 'Completada',
+  rejected: 'Rechazada',
+  cancelled: 'Cancelada',
 };
 
 export function GuestRequestDetailScreen() {
@@ -32,20 +37,45 @@ export function GuestRequestDetailScreen() {
       setLoading(false);
     }
   }, [params.requestId, params.type]);
-  useFocusEffect(useCallback(() => { void load(); }, [load]));
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   if (loading && !request) return <LoadingState message="Cargando solicitud..." />;
-  if (error && !request) return <ErrorState title="Solicitud no disponible" description={error} onRetry={load} />;
+  if (error && !request)
+    return <ErrorState title="Solicitud no disponible" description={error} onRetry={load} />;
   if (!request) return null;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
+    >
       <Text style={styles.title}>{request.title}</Text>
-      <Badge label={labels[request.status]} variant={request.status === 'completed' ? 'success' : request.status === 'rejected' || request.status === 'cancelled' ? 'neutral' : 'info'} />
+      <Badge
+        label={labels[request.status]}
+        variant={
+          request.status === 'completed'
+            ? 'success'
+            : request.status === 'rejected' || request.status === 'cancelled'
+              ? 'neutral'
+              : 'info'
+        }
+      />
       <Text style={styles.label}>Detalle</Text>
       <Text style={styles.value}>{request.description}</Text>
-      {request.notes ? <><Text style={styles.label}>Notas</Text><Text style={styles.value}>{request.notes}</Text></> : null}
-      {request.roomNumber ? <Text style={styles.value}>Habitación {request.roomNumber}</Text> : null}
+      {request.notes ? (
+        <>
+          <Text style={styles.label}>Notas</Text>
+          <Text style={styles.value}>{request.notes}</Text>
+        </>
+      ) : null}
+      {request.roomNumber ? (
+        <Text style={styles.value}>Habitación {request.roomNumber}</Text>
+      ) : null}
       <Text style={styles.meta}>Solicitada {formatElapsedTime(request.createdAt)}</Text>
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </ScrollView>

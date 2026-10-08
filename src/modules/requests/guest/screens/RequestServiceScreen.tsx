@@ -41,7 +41,9 @@ export function RequestServiceScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>{isConcierge ? 'Solicitar conserjería' : 'Solicitar limpieza o artículos'}</Text>
+      <Text style={styles.title}>
+        {isConcierge ? 'Solicitar conserjería' : 'Solicitar limpieza o artículos'}
+      </Text>
       <Text style={styles.subtitle}>La solicitud se enviará al equipo del hotel.</Text>
       <Input
         label="¿Qué necesitas?"
@@ -50,7 +52,11 @@ export function RequestServiceScreen() {
         multiline
         numberOfLines={4}
         maxLength={500}
-        placeholder={isConcierge ? 'Describe el tour, transporte o ayuda que necesitas' : 'Ej. limpieza de habitación o dos toallas adicionales'}
+        placeholder={
+          isConcierge
+            ? 'Describe el tour, transporte o ayuda que necesitas'
+            : 'Ej. limpieza de habitación o dos toallas adicionales'
+        }
         textAlignVertical="top"
       />
       {isConcierge ? (
@@ -65,8 +71,15 @@ export function RequestServiceScreen() {
           textAlignVertical="top"
         />
       ) : null}
-      {error ? <ErrorState title="No se envió la solicitud" description={error} onRetry={submit} /> : null}
-      <Button label="Enviar solicitud" onPress={submit} loading={saving} disabled={!description.trim()} />
+      {error ? (
+        <ErrorState title="No se envió la solicitud" description={error} onRetry={submit} />
+      ) : null}
+      <Button
+        label="Enviar solicitud"
+        onPress={submit}
+        loading={saving}
+        disabled={!description.trim()}
+      />
     </ScrollView>
   );
 }

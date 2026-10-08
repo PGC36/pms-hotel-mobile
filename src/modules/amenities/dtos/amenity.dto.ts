@@ -1,8 +1,4 @@
-export const AMENITY_CATEGORIES = [
-  'room',
-  'hotel',
-  'service',
-] as const;
+export const AMENITY_CATEGORIES = ['room', 'hotel', 'service'] as const;
 
 export type AmenityCategory = (typeof AMENITY_CATEGORIES)[number];
 
