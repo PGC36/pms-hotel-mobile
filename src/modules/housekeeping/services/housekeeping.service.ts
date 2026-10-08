@@ -21,7 +21,7 @@ const ERROR_MESSAGES: Record<HousekeepingErrorKind, string> = {
   unauthorized: 'No hay una sesión autorizada con el servidor.',
   forbidden: 'No tienes permiso para realizar esta operación.',
   notFound: 'La habitación no existe.',
-  rejected: 'El servidor rechazó la operación: el estado de la habitación pudo haber cambiado.',
+  rejected: 'El servidor rechazó la operación. Actualiza la habitación y vuelve a intentarlo.',
   network: 'No se pudo conectar con el servidor.',
   unknown: 'Ocurrió un error inesperado en el servidor. Intenta de nuevo.',
 };
@@ -41,7 +41,7 @@ export class HousekeepingServiceError extends Error {
 function getErrorKind(error: unknown): HousekeepingErrorKind {
   if (error instanceof ApiConfigError) return 'config';
   if (error instanceof HttpError) {
-    if (error.status === 400) return 'rejected';
+    if (error.status === 400 || error.status === 409) return 'rejected';
     if (error.status === 401) return 'unauthorized';
     if (error.status === 403) return 'forbidden';
     if (error.status === 404) return 'notFound';
@@ -67,6 +67,8 @@ async function call<T>(request: () => Promise<T>): Promise<T> {
     throw toServiceError(error);
   }
 }
+
+export const callHousekeepingApi = call;
 
 function roomPath(id: string): string {
   return `/housekeeping/rooms/${encodeURIComponent(id)}`;

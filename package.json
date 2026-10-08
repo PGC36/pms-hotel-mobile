@@ -35,7 +35,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test": "npx tsx scripts/test-auth.ts",
+    "test": "npx tsx scripts/test-auth.ts && npx tsx scripts/test-housekeeping-checklist.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

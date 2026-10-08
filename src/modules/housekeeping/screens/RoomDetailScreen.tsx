@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { HousekeepingStackParamList } from '@/navigation/routes';
@@ -11,7 +11,9 @@ import {
 import { colors, spacing, typography } from '@/shared/theme';
 
 import { RoomStatusBadge } from '../components/RoomStatusBadge';
+import type { HousekeepingChecklistModel } from '../models/checklist.model';
 import type { RoomModel } from '../models/room.model';
+import { getTurnoverChecklist, setChecklistItemChecked } from '../services/checklist.service';
 import {
   completeCleaning,
   getRoomById,
@@ -75,6 +77,28 @@ function reducer(state: State, action: Action): State {
   }
 }
 
+interface ChecklistState {
+  checklist: HousekeepingChecklistModel | null;
+  loading: boolean;
+  error: string | null;
+}
+
+type ChecklistAction =
+  | { type: 'LOADING' }
+  | { type: 'LOADED'; checklist: HousekeepingChecklistModel | null }
+  | { type: 'ERROR'; message: string };
+
+function checklistReducer(state: ChecklistState, action: ChecklistAction): ChecklistState {
+  switch (action.type) {
+    case 'LOADING':
+      return { ...state, loading: true, error: null };
+    case 'LOADED':
+      return { checklist: action.checklist, loading: false, error: null };
+    case 'ERROR':
+      return { ...state, loading: false, error: action.message };
+  }
+}
+
 function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof HousekeepingServiceError ? error.message : fallback;
 }
@@ -107,20 +131,36 @@ export function RoomDetailScreen({ route, navigation }: Props) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [{ checklist, loading: checklistLoading, error: checklistError }, dispatchChecklist] =
+    useReducer(checklistReducer, { checklist: null, loading: false, error: null });
   // `isSubmitting` llega con el siguiente render; el ref corta un doble toque inmediato.
   const submittingRef = useRef(false);
+
+  const loadChecklist = useCallback(async () => {
+    dispatchChecklist({ type: 'LOADING' });
+    try {
+      dispatchChecklist({ type: 'LOADED', checklist: await getTurnoverChecklist(roomId) });
+    } catch (error) {
+      dispatchChecklist({
+        type: 'ERROR',
+        message: getErrorMessage(error, 'No se pudo cargar la lista de limpieza.'),
+      });
+    }
+  }, [roomId]);
 
   const load = useCallback(async () => {
     try {
       const room = await getRoomById(roomId);
       dispatch(room ? { type: 'ROOM_LOADED', room } : { type: 'NOT_FOUND' });
+      if (room && room.housekeepingStatus !== 'dirty') await loadChecklist();
+      else dispatchChecklist({ type: 'LOADED', checklist: null });
     } catch (error) {
       dispatch({
         type: 'FETCH_ERROR',
         message: getErrorMessage(error, 'No se pudo cargar la habitación. Intenta de nuevo.'),
       });
     }
-  }, [roomId]);
+  }, [roomId, loadChecklist]);
 
   useEffect(() => {
     load();
@@ -155,6 +195,7 @@ export function RoomDetailScreen({ route, navigation }: Props) {
     try {
       const updated = await action.run(roomId);
       dispatch({ type: 'ROOM_LOADED', room: updated });
+      await loadChecklist();
     } catch (error) {
       setActionError(getErrorMessage(error, 'No se pudo completar la acción. Intenta de nuevo.'));
       if (
@@ -162,7 +203,30 @@ export function RoomDetailScreen({ route, navigation }: Props) {
         (error.kind === 'rejected' || error.kind === 'notFound')
       ) {
         await syncWithBackend();
+        await loadChecklist();
       }
+    } finally {
+      submittingRef.current = false;
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleChecklistItem(itemId: string, checked: boolean) {
+    if (!checklist || submittingRef.current) return;
+    submittingRef.current = true;
+    setIsSubmitting(true);
+    dispatchChecklist({ type: 'LOADING' });
+    try {
+      dispatchChecklist({
+        type: 'LOADED',
+        checklist: await setChecklistItemChecked(checklist, itemId, checked),
+      });
+    } catch (error) {
+      await loadChecklist();
+      dispatchChecklist({
+        type: 'ERROR',
+        message: getErrorMessage(error, 'No se pudo guardar el artículo. Intenta de nuevo.'),
+      });
     } finally {
       submittingRef.current = false;
       setIsSubmitting(false);
@@ -199,6 +263,14 @@ export function RoomDetailScreen({ route, navigation }: Props) {
   const { room } = state;
   const actions = getHousekeepingActions(room.housekeepingStatus);
   const traceRows = getTraceRows(room);
+  const pendingItems = checklist?.items.filter((item) => !item.checked).length ?? 0;
+  const needsChecklist =
+    room.housekeepingStatus === 'cleaning' || room.housekeepingStatus === 'clean';
+  const checklistReady =
+    checklist &&
+    (room.housekeepingStatus === 'cleaning'
+      ? (checklist.status === 'pending' || checklist.status === 'in_progress') && pendingItems === 0
+      : checklist.status === 'completed');
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -219,6 +291,54 @@ export function RoomDetailScreen({ route, navigation }: Props) {
         </Text>
       ) : null}
 
+      {needsChecklist ? (
+        <Card style={styles.section}>
+          <Text style={styles.sectionTitle}>Lista de limpieza</Text>
+          {checklistLoading ? <Text style={styles.hint}>Cargando lista...</Text> : null}
+          {checklistError ? (
+            <Text style={styles.error} accessibilityRole="alert">
+              {checklistError}
+            </Text>
+          ) : null}
+          {!checklistLoading && !checklist && !checklistError ? (
+            <Text style={styles.hint}>No se encontró la lista de esta habitación.</Text>
+          ) : null}
+          {checklist ? (
+            <>
+              <Text style={styles.hint}>
+                {pendingItems === 0 ? 'Todos los puntos verificados' : `${pendingItems} pendientes`}
+              </Text>
+              {checklist.items.map((item) => (
+                <Pressable
+                  key={item.id}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{
+                    checked: item.checked,
+                    disabled: room.housekeepingStatus !== 'cleaning' || isSubmitting,
+                  }}
+                  disabled={room.housekeepingStatus !== 'cleaning' || isSubmitting}
+                  onPress={() => void handleChecklistItem(item.id, !item.checked)}
+                  style={styles.checklistRow}
+                >
+                  <Text style={styles.checkbox}>{item.checked ? '☑' : '☐'}</Text>
+                  <Text style={styles.body}>{item.label}</Text>
+                </Pressable>
+              ))}
+            </>
+          ) : null}
+          {room.housekeepingStatus === 'cleaning' && checklist && pendingItems > 0 ? (
+            <Text style={styles.hint}>Verifica todos los puntos para finalizar la limpieza.</Text>
+          ) : null}
+          {checklistError || !checklist ? (
+            <Button
+              label="Reintentar lista"
+              variant="secondary"
+              onPress={() => void loadChecklist()}
+            />
+          ) : null}
+        </Card>
+      ) : null}
+
       {actions.length > 0 ? (
         <View style={styles.actions}>
           {actions.map((action) => (
@@ -226,6 +346,9 @@ export function RoomDetailScreen({ route, navigation }: Props) {
               key={action.label}
               label={action.label}
               loading={isSubmitting}
+              disabled={
+                needsChecklist && (!checklistReady || checklistLoading || Boolean(checklistError))
+              }
               onPress={() => void handleAction(action)}
               fullWidth
             />
@@ -324,5 +447,15 @@ const styles = StyleSheet.create({
   traceLabel: {
     ...typography.caption,
     color: colors.text.muted,
+  },
+  checklistRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+  },
+  checkbox: {
+    fontSize: 24,
+    color: colors.brand[600],
   },
 });

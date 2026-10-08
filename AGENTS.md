@@ -41,6 +41,7 @@ Guía para agentes de IA (Claude Code, Codex, Copilot, Cursor u otro) que trabaj
   - **Almacenamiento Seguro:** Los tokens de acceso y renovación (`accessToken`, `refreshToken`) usan `expo-secure-store` en iOS/Android. En Web se mantienen solo en memoria (no se persisten en AsyncStorage ni sobreviven una recarga). El almacenamiento no seguro (`pms.session`) solo persiste `{ type: 'staff', email }` sin credenciales ni datos de negocio.
   - **Renovación y Cierre de Sesión:** Soporte para rotación de token vía `POST /auth/refresh` (`refreshStaffToken`) y revocación en servidor vía `POST /auth/logout` (`logoutStaff`). Si el token expira o el refresh falla, la sesión se limpia y se redirige al login sin mezclar sesiones.
   - **Aislamiento de Rol:** `StaffNavigator` valida el rol resuelto y sólo expone las rutas permitidas para dicho rol.
+- **HOUSEKEEPING-CHECKLIST (Issue #29)**: el detalle de habitación consulta el checklist de recambio real por `roomId`, permite marcar y guardar cada punto en el backend y bloquea `complete` hasta que todos estén verificados; `inspect` exige el checklist completado. Los rechazos HTTP 409 se tratan como cambios de estado y recargan habitación y checklist.
 - El resto de pantallas y componentes de módulos de dominio siguen siendo placeholders vacíos — llegan en MOV-11 en adelante. No asumas que un archivo tiene contenido solo porque existe: verifica antes de editar.
 - Mantén esta sección al día cada vez que termines un ticket de Fase 0/1/2 — así el siguiente agente no tiene que reconstruir el estado leyendo commits.
 
