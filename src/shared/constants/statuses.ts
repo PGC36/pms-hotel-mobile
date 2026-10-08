@@ -62,6 +62,7 @@ export const SERVICE_REQUEST_STATUSES = [
   'inProgress',
   'completed',
   'rejected',
+  'cancelled',
 ] as const;
 
 export type ServiceRequestStatus = (typeof SERVICE_REQUEST_STATUSES)[number];
@@ -69,18 +70,18 @@ export type ServiceRequestStatus = (typeof SERVICE_REQUEST_STATUSES)[number];
 /**
  * pending → accepted → inProgress → completed
  * pending → rejected
- * No existe un estado `cancelled` separado: cancelar una solicitud propia
- * mientras está `pending` (HU-19) se modela como transición a `rejected`.
+ * El backend permite cancelar desde pending, accepted e in_progress.
  */
 export const SERVICE_REQUEST_STATUS_TRANSITIONS: Record<
   ServiceRequestStatus,
   ServiceRequestStatus[]
 > = {
-  pending: ['accepted', 'rejected'],
-  accepted: ['inProgress'],
-  inProgress: ['completed'],
+  pending: ['accepted', 'rejected', 'cancelled'],
+  accepted: ['inProgress', 'cancelled'],
+  inProgress: ['completed', 'cancelled'],
   completed: [],
   rejected: [],
+  cancelled: [],
 };
 
 /** Texto visible al personal para cada estado de `ServiceRequest` (ej. bandeja de tasks, MOV-07). */
@@ -90,6 +91,7 @@ export const SERVICE_REQUEST_STATUS_LABELS: Record<ServiceRequestStatus, string>
   inProgress: 'En progreso',
   completed: 'Completada',
   rejected: 'Rechazada',
+  cancelled: 'Cancelada',
 };
 
 // ---------------------------------------------------------------------------

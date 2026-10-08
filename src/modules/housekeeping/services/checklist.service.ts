@@ -35,3 +35,38 @@ export async function setChecklistItemChecked(
   );
   return mapChecklistDTOToModel(updated);
 }
+
+export async function getRequestChecklist(
+  roomId: string,
+  requestId: string,
+): Promise<HousekeepingChecklistModel | null> {
+  const data = await callHousekeepingApi(() =>
+    apiClient.get<HousekeepingChecklistDTO[]>(
+      `/housekeeping/checklists?roomId=${encodeURIComponent(roomId)}`,
+    ),
+  );
+  const checklist = (data ?? []).find((item) => item.serviceRequestId === requestId);
+  return checklist ? mapChecklistDTOToModel(checklist) : null;
+}
+
+export async function createRequestChecklist(
+  requestId: string,
+  labels: string[],
+): Promise<HousekeepingChecklistModel> {
+  const data = await callHousekeepingApi(() =>
+    apiClient.post<HousekeepingChecklistDTO>('/housekeeping/checklists', {
+      serviceRequestId: requestId,
+      items: labels.map((label) => ({ label, checked: false })),
+    }),
+  );
+  return mapChecklistDTOToModel(data);
+}
+
+export async function completeRequestChecklist(id: string): Promise<HousekeepingChecklistModel> {
+  const data = await callHousekeepingApi(() =>
+    apiClient.put<HousekeepingChecklistDTO>(`/housekeeping/checklists/${encodeURIComponent(id)}`, {
+      status: 'completed',
+    }),
+  );
+  return mapChecklistDTOToModel(data);
+}

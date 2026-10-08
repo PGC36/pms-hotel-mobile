@@ -8,27 +8,27 @@ import { getMyCompletedTasks } from '../services/housekeeping-task.service';
 
 const CONFIG: TaskListScreenConfig = {
   emptyIcon: '✅',
-  emptyTitle: 'Aún no hay tareas completadas',
-  emptyDescription: 'Las solicitudes que completes aparecerán aquí.',
+  emptyTitle: 'Aún no hay tareas atendidas',
+  emptyDescription: 'Las solicitudes completadas por ti aparecerán aquí.',
   // `getMyCompletedTasks` ya entrega la más recientemente completada primero.
   sort: 'asProvided',
 };
 
 /**
- * Historial del usuario en sesión (HU-10) sobre la bandeja genérica. Sin
+ * Historial persistido del usuario en sesión sobre la bandeja genérica. Sin
  * `onTaskPress`: las tarjetas no son presionables, así que desde aquí no se
  * puede abrir un detalle ni cambiar el estado de una tarea ya completada.
  */
 export function HousekeepingHistoryScreen() {
   const { session } = useAuth();
-  const userId = session?.type === 'staff' ? session.user.id : null;
+  const email = session?.type === 'staff' ? session.user.email : null;
 
   const fetchTasks = useCallback(
     (): Promise<TaskModel[]> =>
-      userId
-        ? getMyCompletedTasks(userId)
+      email
+        ? getMyCompletedTasks(email)
         : Promise.reject(new Error('No hay un usuario de personal en sesión.')),
-    [userId],
+    [email],
   );
 
   return <TaskListScreen fetchTasks={fetchTasks} config={CONFIG} />;

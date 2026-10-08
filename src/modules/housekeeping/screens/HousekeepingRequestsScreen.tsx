@@ -4,6 +4,7 @@ import { TaskListScreen, type TaskListScreenConfig } from '@/modules/tasks/scree
 import type { HousekeepingStackParamList } from '@/navigation/routes';
 
 import { getHousekeepingTasks } from '../services/housekeeping-task.service';
+import { HousekeepingServiceError } from '../services/housekeeping.service';
 
 type Props = NativeStackScreenProps<HousekeepingStackParamList, 'Requests'>;
 
@@ -11,6 +12,7 @@ const CONFIG: TaskListScreenConfig = {
   emptyIcon: '🧺',
   emptyTitle: 'No hay solicitudes',
   emptyDescription: 'Cuando un huésped pida limpieza o artículos aparecerá aquí.',
+  getErrorDescription: (error) => error instanceof HousekeepingServiceError ? error.message : undefined,
 };
 
 /** Bandeja de solicitudes de Limpieza: solo configura la bandeja genérica de `tasks`. */

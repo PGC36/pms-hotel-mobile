@@ -1,8 +1,6 @@
 import type { GuestDTO } from '@/modules/booking/dtos/guest.dto';
 import type { BookingDTO } from '@/modules/booking/dtos/booking.dto';
 import type { RoomDTO } from '@/modules/housekeeping/dtos/room.dto';
-import type { IssueReportDTO } from '@/modules/housekeeping/dtos/issue-report.dto';
-import type { HousekeepingTaskCompletionDTO } from '@/modules/housekeeping/dtos/task-completion.dto';
 import type { ServiceRequestDTO } from '@/modules/requests/dtos/service-request.dto';
 
 interface AmenityDemoDTO {
@@ -34,8 +32,6 @@ interface NotificationDemoDTO {
  * Nota: Los usuarios de personal (usersDB) han sido removidos porque la autenticación
  * ahora opera 100% contra los endpoints reales del backend (/api/v1/auth).
  */
-
-
 
 // ---------------------------------------------------------------------------
 // Rooms
@@ -180,7 +176,6 @@ export const roomsDB: RoomDTO[] = [
     updatedAt: '2026-09-06T06:00:00.000Z',
   },
 ];
-
 // ---------------------------------------------------------------------------
 // Guests y Bookings
 // ---------------------------------------------------------------------------
@@ -287,7 +282,6 @@ export const guestsDB: GuestDTO[] = [
     created_at: '2026-08-01T15:00:00.000Z',
   },
 ];
-
 export const bookingsDB: BookingDTO[] = [
   {
     id: 'booking-01',
@@ -953,43 +947,5 @@ export const notificationsDB: NotificationDemoDTO[] = [
     related_entity_id: 'order-09',
     is_read: true,
     created_at: '2026-09-04T20:26:00.000Z',
-  },
-];
-
-// ---------------------------------------------------------------------------
-// Housekeeping — reportes de desperfectos y responsables de tareas (MOCK, MOV-09)
-// ---------------------------------------------------------------------------
-
-/** Arranca vacío: se llena con los reportes creados durante la sesión. */
-export const issueReportsDB: IssueReportDTO[] = [];
-
-/**
- * Quién completó cada solicitud de Limpieza. Semilla: solo solicitudes que ya
- * están `completed`, con `completed_at` igual a su `updated_at`.
- */
-export const housekeepingTaskCompletionsDB: HousekeepingTaskCompletionDTO[] = [
-  {
-    id: 'completion-01',
-    service_request_id: 'request-05',
-    completed_by_user_id: 'user-01',
-    completed_at: '2026-09-05T19:40:00.000Z',
-  },
-  {
-    id: 'completion-02',
-    service_request_id: 'request-14',
-    completed_by_user_id: 'user-01',
-    completed_at: '2026-09-05T14:30:00.000Z',
-  },
-  {
-    id: 'completion-03',
-    service_request_id: 'request-07',
-    completed_by_user_id: 'user-02',
-    completed_at: '2026-09-05T10:10:00.000Z',
-  },
-  {
-    id: 'completion-04',
-    service_request_id: 'request-19',
-    completed_by_user_id: 'user-02',
-    completed_at: '2026-09-04T18:30:00.000Z',
   },
 ];
