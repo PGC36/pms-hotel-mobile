@@ -12,9 +12,9 @@ import { colors, spacing, typography } from '@/shared/theme';
 import type { MaintenanceModel } from '../models/maintenance.model';
 import type { HousekeepingChecklistModel } from '../models/checklist.model';
 import {
+  addChecklistItem,
   completeRequestChecklist,
-  createRequestChecklist,
-  getRequestChecklist,
+  getOrCreateRequestChecklist,
   setChecklistItemChecked,
 } from '../services/checklist.service';
 import {
@@ -64,23 +64,32 @@ function errorMessage(error: unknown): string {
     : 'No se pudo completar la operación. Intenta de nuevo.';
 }
 
+function isArticleDelivery(description: string): boolean {
+  return /^art[ií]culos solicitados:/i.test(description.trim());
+}
+
+function isActiveRequest(status: ServiceRequestStatus): boolean {
+  return status !== 'completed' && status !== 'cancelled' && status !== 'rejected';
+}
+
 export function HousekeepingRequestDetailScreen({ route }: Props) {
   const { taskId } = route.params;
   const [state, dispatch] = useReducer(reducer, { status: 'loading' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmComplete, setConfirmComplete] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [checklistLabels, setChecklistLabels] = useState('');
+  const [additionalItem, setAdditionalItem] = useState('');
   const maintenanceRef = useRef<MaintenanceModel | null>(null);
   const inFlight = useRef(false);
 
   const load = useCallback(async () => {
     try {
       const entry = await getHousekeepingEntryById(taskId);
-      const checklist =
-        entry?.kind === 'stayover'
-          ? await getRequestChecklist(entry.request.roomId, entry.request.id)
-          : null;
+      const checklist = entry?.kind === 'stayover' &&
+        !isArticleDelivery(entry.request.description) &&
+        isActiveRequest(entry.request.status)
+        ? await getOrCreateRequestChecklist(entry.request.roomId, entry.request.id)
+        : null;
       maintenanceRef.current = entry?.kind === 'maintenance' ? entry.request : null;
       dispatch({ type: 'LOADED', entry, checklist });
     } catch (error) {
@@ -148,7 +157,7 @@ export function HousekeepingRequestDetailScreen({ route }: Props) {
     setActionError(null);
     try {
       dispatch({ type: 'CHECKLIST', checklist: await work() });
-      setChecklistLabels('');
+      setAdditionalItem('');
     } catch (error) {
       setActionError(errorMessage(error));
     } finally {
@@ -204,11 +213,9 @@ export function HousekeepingRequestDetailScreen({ route }: Props) {
           <Text style={styles.body}>{request.notes}</Text>
         </Card>
       ) : null}
-      {request.status !== 'completed' &&
-      request.status !== 'cancelled' &&
-      request.status !== 'rejected' ? (
+      {!isArticleDelivery(request.description) && isActiveRequest(request.status) ? (
         <Card style={styles.confirm}>
-          <Text style={styles.sectionTitle}>Lista de esta solicitud</Text>
+          <Text style={styles.sectionTitle}>Checklist de limpieza</Text>
           {checklist ? (
             <>
               {checklist.items.map((item) => (
@@ -238,40 +245,34 @@ export function HousekeepingRequestDetailScreen({ route }: Props) {
                   : `${pendingItems} puntos pendientes`}
               </Text>
               {checklist.status !== 'completed' ? (
-                <Button
-                  label="Completar lista"
-                  disabled={pendingItems > 0 || isSubmitting}
-                  onPress={() =>
-                    void handleChecklistChange(() => completeRequestChecklist(checklist.id))
-                  }
-                />
+                <>
+                  <Input
+                    label="Punto especial (opcional)"
+                    placeholder="Agregar una tarea para esta habitación"
+                    value={additionalItem}
+                    onChangeText={setAdditionalItem}
+                    maxLength={255}
+                  />
+                  <Button
+                    label="Agregar punto"
+                    variant="secondary"
+                    disabled={!additionalItem.trim() || isSubmitting}
+                    onPress={() =>
+                      void handleChecklistChange(() => addChecklistItem(checklist, additionalItem))
+                    }
+                  />
+                  <Button
+                    label="Completar lista"
+                    disabled={pendingItems > 0 || isSubmitting}
+                    onPress={() =>
+                      void handleChecklistChange(() => completeRequestChecklist(checklist.id))
+                    }
+                  />
+                </>
               ) : null}
             </>
           ) : (
-            <>
-              <Input
-                label="Puntos de revisión"
-                placeholder="Un punto por línea"
-                value={checklistLabels}
-                onChangeText={setChecklistLabels}
-                multiline
-              />
-              <Button
-                label="Crear lista"
-                disabled={!checklistLabels.trim() || isSubmitting}
-                onPress={() =>
-                  void handleChecklistChange(() =>
-                    createRequestChecklist(
-                      request.id,
-                      checklistLabels
-                        .split('\n')
-                        .map((label) => label.trim())
-                        .filter(Boolean),
-                    ),
-                  )
-                }
-              />
-            </>
+            <Text style={styles.body}>No se pudo preparar la checklist. Actualiza la solicitud.</Text>
           )}
         </Card>
       ) : null}
