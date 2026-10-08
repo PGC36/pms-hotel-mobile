@@ -9,7 +9,7 @@ import { getMyCompletedTasks } from '../services/housekeeping-task.service';
 const CONFIG: TaskListScreenConfig = {
   emptyIcon: '✅',
   emptyTitle: 'Aún no hay tareas atendidas',
-  emptyDescription: 'Las solicitudes cerradas bajo tu responsabilidad aparecerán aquí.',
+  emptyDescription: 'Las solicitudes completadas por ti aparecerán aquí.',
   // `getMyCompletedTasks` ya entrega la más recientemente completada primero.
   sort: 'asProvided',
 };

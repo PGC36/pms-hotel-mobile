@@ -7,6 +7,7 @@ export interface ConciergeRequestModel {
   roomNumber: string;
   guestName: string;
   responsibleUserEmail: string | null;
+  completedByUserEmail: string | null;
   description: string;
   status: ServiceRequestStatus;
   notes: string | null;

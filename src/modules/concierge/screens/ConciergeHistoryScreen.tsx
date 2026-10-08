@@ -20,7 +20,7 @@ export function ConciergeHistoryScreen() {
       fetchTasks={fetchTasks}
       config={{
         emptyTitle: 'Aún no hay solicitudes atendidas',
-        emptyDescription: 'Las solicitudes cerradas bajo tu responsabilidad aparecerán aquí.',
+        emptyDescription: 'Las solicitudes completadas por ti aparecerán aquí.',
         sort: 'asProvided',
       }}
     />

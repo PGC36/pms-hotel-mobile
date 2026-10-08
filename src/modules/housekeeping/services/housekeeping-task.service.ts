@@ -72,7 +72,7 @@ export async function getMyCompletedTasks(email: string): Promise<TaskModel[]> {
       .filter(
         (request) =>
           request.status === 'completed' &&
-          request.responsibleUserEmail?.toLowerCase() === email.toLowerCase(),
+          request.completedByUserEmail?.toLowerCase() === email.toLowerCase(),
       )
       .map(mapMaintenanceToTask),
   ].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());

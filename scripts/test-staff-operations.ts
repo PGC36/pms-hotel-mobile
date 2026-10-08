@@ -46,8 +46,8 @@ const stayover = mapStayoverDTOToModel({
   description: 'Limpieza solicitada',
   notes: null,
   responsibleUserEmail: 'staff@example.test',
+  completedByUserEmail: 'staff@example.test',
   startedByUserEmail: 'staff@example.test',
-  completedByUserEmail: null,
   requestedAt: '2026-10-08T10:00:00Z',
   startedAt: null,
   completedAt: null,
@@ -56,12 +56,14 @@ const stayover = mapStayoverDTOToModel({
 } satisfies StayoverDTO);
 assertEqual(stayover.status, 'inProgress', 'Estado stayover');
 assertEqual(stayover.roomNumber, '202', 'Número de habitación');
+assertEqual(stayover.completedByUserEmail, 'staff@example.test', 'Ejecutor stayover');
 
 const maintenance = mapMaintenanceDTOToModel({
   id: 'maintenance-1',
   roomId: 'room-1',
   roomNumber: '202',
   responsibleUserEmail: 'staff@example.test',
+  completedByUserEmail: 'staff@example.test',
   type: 'maintenance',
   description: 'Grifo con fuga',
   status: 'in_progress',
@@ -71,6 +73,7 @@ const maintenance = mapMaintenanceDTOToModel({
   updatedAt: '2026-10-08T10:05:00Z',
 } satisfies MaintenanceDTO);
 assertEqual(maintenance.status, 'inProgress', 'Estado maintenance');
+assertEqual(maintenance.completedByUserEmail, 'staff@example.test', 'Ejecutor maintenance');
 
 const concierge = mapConciergeDTOToModel({
   id: 'concierge-1',
@@ -79,6 +82,7 @@ const concierge = mapConciergeDTOToModel({
   roomNumber: '202',
   guestName: 'Ana Morales',
   responsibleUserEmail: null,
+  completedByUserEmail: 'staff@example.test',
   type: 'concierge',
   description: 'Solicitar taxi',
   status: 'in_progress',
@@ -88,6 +92,7 @@ const concierge = mapConciergeDTOToModel({
 } satisfies ConciergeRequestDTO);
 assertEqual(mapConciergeToTask(concierge).status, 'inProgress', 'Estado concierge');
 assertEqual(mapConciergeToTask(concierge).roomLabel, 'Habitación 202', 'Habitación concierge');
+assertEqual(concierge.completedByUserEmail, 'staff@example.test', 'Ejecutor concierge');
 assertValidTransition(SERVICE_REQUEST_STATUS_TRANSITIONS, 'pending', 'accepted', 'ServiceRequest');
 assertValidTransition(
   SERVICE_REQUEST_STATUS_TRANSITIONS,

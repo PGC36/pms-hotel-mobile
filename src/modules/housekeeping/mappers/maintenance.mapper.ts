@@ -7,6 +7,7 @@ export function mapMaintenanceDTOToModel(dto: MaintenanceDTO): MaintenanceModel 
     roomId: dto.roomId,
     roomNumber: dto.roomNumber,
     responsibleUserEmail: dto.responsibleUserEmail,
+    completedByUserEmail: dto.completedByUserEmail ?? null,
     description: dto.description,
     status: dto.status === 'in_progress' ? 'inProgress' : dto.status,
     notes: dto.notes,

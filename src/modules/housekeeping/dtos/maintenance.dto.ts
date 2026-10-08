@@ -3,6 +3,7 @@ export interface MaintenanceDTO {
   roomId: string;
   roomNumber: string;
   responsibleUserEmail: string | null;
+  completedByUserEmail?: string | null;
   type: 'maintenance';
   description: string;
   status: 'pending' | 'accepted' | 'in_progress' | 'completed' | 'rejected' | 'cancelled';

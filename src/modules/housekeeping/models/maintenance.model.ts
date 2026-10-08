@@ -5,6 +5,7 @@ export interface MaintenanceModel {
   roomId: string;
   roomNumber: string;
   responsibleUserEmail: string | null;
+  completedByUserEmail: string | null;
   description: string;
   status: ServiceRequestStatus;
   notes: string | null;

@@ -21,8 +21,8 @@ export async function getMyConciergeHistory(email: string): Promise<TaskModel[]>
   return (await getConciergeRequests())
     .filter(
       (request) =>
-        TERMINAL.has(request.status) &&
-        request.responsibleUserEmail?.toLowerCase() === email.toLowerCase(),
+        request.status === 'completed' &&
+        request.completedByUserEmail?.toLowerCase() === email.toLowerCase(),
     )
     .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
     .map(mapConciergeToTask);

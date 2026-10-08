@@ -5,6 +5,7 @@ export interface ConciergeRequestDTO {
   roomNumber: string;
   guestName: string;
   responsibleUserEmail: string | null;
+  completedByUserEmail?: string | null;
   type: 'concierge';
   description: string;
   status: 'pending' | 'accepted' | 'in_progress' | 'completed' | 'rejected' | 'cancelled';

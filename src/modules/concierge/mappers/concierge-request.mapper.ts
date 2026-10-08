@@ -11,6 +11,7 @@ export function mapConciergeDTOToModel(dto: ConciergeRequestDTO): ConciergeReque
     roomNumber: dto.roomNumber,
     guestName: dto.guestName,
     responsibleUserEmail: dto.responsibleUserEmail,
+    completedByUserEmail: dto.completedByUserEmail ?? null,
     description: dto.description,
     status: dto.status === 'in_progress' ? 'inProgress' : dto.status,
     notes: dto.notes,
