@@ -13,20 +13,20 @@ Construida con React Native y Expo.
 Una sola aplicación con **dos experiencias separadas por navegación**, según el
 tipo de sesión:
 
-| Experiencia | Usuarios | Estado |
-|---|---|---|
-| **Personal** | Limpieza, Room Service, Conserjería | En construcción (Fase 1) |
-| **Huésped** | Huésped con reserva confirmada | Estadía, servicios, Room Service y avisos |
+| Experiencia  | Usuarios                            | Estado                                    |
+| ------------ | ----------------------------------- | ----------------------------------------- |
+| **Personal** | Limpieza, Room Service, Conserjería | En construcción (Fase 1)                  |
+| **Huésped**  | Huésped con reserva confirmada      | Estadía, servicios, Room Service y avisos |
 
 El navegador raíz decide qué árbol cargar. Un huésped nunca instancia las
 pantallas del personal, y viceversa.
 
 ## Repositorios del proyecto
 
-| Repositorio | Contenido |
-|---|---|
+| Repositorio                                                          | Contenido                                                                 |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | [`pms-hotel-boutique`](https://github.com/DougGM/pms-hotel-boutique) | Web pública (motor de reservas) y web privada (recepción, administración) |
-| `pms-hotel-mobile` | Este repositorio — aplicación móvil |
+| `pms-hotel-mobile`                                                   | Este repositorio — aplicación móvil                                       |
 
 ## Stack
 
@@ -55,15 +55,13 @@ reservación asociada cuando así lo exige el backend.
 
 ### Credenciales Demo (Backend Real)
 
-| Tipo | Correo | Contraseña | Rol / Reserva |
-|---|---|---|---|
-| **Huésped** | `ana.demo@aurora.test` | `huesped1` | AUR-DEMO-001 |
-| **Huésped** | `carlos.demo@aurora.test` | `huesped2` | AUR-DEMO-002 |
-| **Personal** | `limpieza@aurora.test` | `limpieza` | Limpieza (`housekeeping`) |
+| Tipo         | Correo                    | Contraseña    | Rol / Reserva                |
+| ------------ | ------------------------- | ------------- | ---------------------------- |
+| **Huésped**  | `ana.demo@aurora.test`    | `huesped1`    | AUR-DEMO-001                 |
+| **Huésped**  | `carlos.demo@aurora.test` | `huesped2`    | AUR-DEMO-002                 |
+| **Personal** | `limpieza@aurora.test`    | `limpieza`    | Limpieza (`housekeeping`)    |
 | **Personal** | `roomservice@aurora.test` | `roomservice` | Room Service (`roomService`) |
-| **Personal** | `conserjeria@aurora.test` | `conserjeria` | Conserjería (`concierge`) |
-
-
+| **Personal** | `conserjeria@aurora.test` | `conserjeria` | Conserjería (`concierge`)    |
 
 ## Requisitos
 
@@ -92,6 +90,14 @@ npm run format       # Prettier — escribe cambios
 npm run format:check # Prettier — solo verifica
 npx tsc --noEmit     # chequeo de tipos
 ```
+
+## QA con backend real
+
+La matriz de validación para la issue
+[`#25`](https://github.com/PGC36/pms-hotel-mobile/issues/25) vive en
+[`docs/qa/mobile-backend-postgres-validation.md`](./docs/qa/mobile-backend-postgres-validation.md).
+Incluye entorno requerido, seed mínimo, flujos aplicables, casos no aplicables y
+plantilla de evidencia por corrida.
 
 ## Estructura
 
