@@ -1,6 +1,6 @@
 # CI/CD App Móvil — PMS Hotel Boutique Aurora
 
-Este documento describe la canalización de la app móvil (GitHub Actions y Jenkins), el análisis con SonarQube self-hosted y su Quality Gate, y los builds nativos con Expo EAS. Responde al issue #24.
+Este documento describe la canalización de la app móvil (GitHub Actions y Jenkins), el análisis con SonarQube Cloud (o, como alternativa, un servidor SonarQube self-hosted) y su Quality Gate, y los builds nativos con Expo EAS. Responde al issue #24.
 
 La app es Expo/React Native: **no se empaqueta en Docker**. Los entregables son builds nativos de EAS (APK/AAB Android, build de simulador iOS). **Nada se publica automáticamente en App Store ni Play Store.**
 
@@ -33,7 +33,7 @@ Cada etapa es un script de `package.json`, idéntico en local, Actions y Jenkins
 
 `npm run ci` ejecuta en orden todo lo anterior salvo SonarQube. Es lo que conviene correr antes de abrir un PR.
 
-Cualquier fallo de formato, tipos, lint, pruebas o build hace fallar el job y, por lo tanto, el PR. Al final de cada run, el **resumen del job** (pestaña _Summary_) muestra una tabla con el resultado de cada etapa, incluida una línea inequívoca de SonarQube: `✅ Quality Gate "Aurora Mobile" aprobado`, `❌ Quality Gate rechazado…` o `⚠️ OMITIDO — <motivo>. No es un Quality Gate aprobado.`
+Cualquier fallo de formato, tipos, lint, pruebas o build hace fallar el job y, por lo tanto, el PR. Al final de cada run, el **resumen del job** (pestaña _Summary_) muestra una tabla con el resultado de cada etapa, incluida una línea inequívoca de SonarQube: `✅ Quality Gate aprobado`, `❌ Quality Gate rechazado…` o `⚠️ OMITIDO — <motivo>. No es un Quality Gate aprobado.`
 
 ### Agregar pruebas
 
@@ -43,27 +43,27 @@ Cualquier fallo de formato, tipos, lint, pruebas o build hace fallar el job y, p
 
 ### GitHub → Settings → Secrets and variables → Actions
 
-| Secret              | Obligatorio                                                   | Uso                                                                                                  |
-| ------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `SONAR_TOKEN`       | No (sin él se omite SonarQube)                                | Token de análisis del proyecto (_Project Analysis Token_ `ci-pms-hotel-mobile`)                      |
-| `SONAR_HOST_URL`    | No (sin él se omite SonarQube)                                | URL del servidor SonarQube. Tiene que ser alcanzable **desde los runners de GitHub** (ver más abajo) |
-| `SONAR_PROJECT_KEY` | No (default `pms-hotel-mobile` de `sonar-project.properties`) | projectKey en SonarQube                                                                              |
-| `EXPO_TOKEN`        | No (sin él se omiten los builds EAS)                          | Access token de la cuenta de Expo (expo.dev → Account settings → Access tokens)                      |
-
-> No se usa `SONAR_ORGANIZATION`: es exclusivo de SonarCloud. Este proyecto usa SonarQube self-hosted.
+| Secret               | Obligatorio                                                   | Uso                                                                                                                     |
+| -------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `SONAR_TOKEN`        | No (sin él se omite SonarQube)                                | Token de análisis. Cloud: _My Account → Security_. Self-hosted: _Project Analysis Token_ `ci-pms-hotel-mobile`          |
+| `SONAR_HOST_URL`     | No (sin él se omite SonarQube)                                | `https://sonarcloud.io` en Cloud. En self-hosted, una URL alcanzable **desde los runners de GitHub**                    |
+| `SONAR_PROJECT_KEY`  | No (default `pms-hotel-mobile` de `sonar-project.properties`) | projectKey. En Cloud es el que asigna SonarQube Cloud al importar el repo (suele ser `<organizacion>_pms-hotel-mobile`) |
+| `SONAR_ORGANIZATION` | Solo en SonarQube Cloud                                       | Key de la organización en SonarQube Cloud. Vacío = self-hosted                                                          |
+| `EXPO_TOKEN`         | No (sin él se omiten los builds EAS)                          | Access token de la cuenta de Expo (expo.dev → Account settings → Access tokens)                                         |
 
 El GitHub Release de los tags usa el `GITHUB_TOKEN` automático (el job declara `contents: write`). Revisa en **Settings → Actions → General → Workflow permissions** que el repo no bloquee ese permiso.
 
 ### Jenkins → Manage Jenkins → Credentials
 
-Mismos IDs que el backend, más `expo-token`:
+Mismos IDs que el backend, más `sonar-organization` y `expo-token`:
 
-| ID                  | Tipo                   | Equivale a                                                |
-| ------------------- | ---------------------- | --------------------------------------------------------- |
-| `sonar-token`       | Secret text            | `SONAR_TOKEN`                                             |
-| `sonar-host-url`    | Secret text            | `SONAR_HOST_URL` (en on-premise puede ser la URL interna) |
-| `sonar-project-key` | Secret text (opcional) | `SONAR_PROJECT_KEY`                                       |
-| `expo-token`        | Secret text            | `EXPO_TOKEN`                                              |
+| ID                   | Tipo                   | Equivale a                                                |
+| -------------------- | ---------------------- | --------------------------------------------------------- |
+| `sonar-token`        | Secret text            | `SONAR_TOKEN`                                             |
+| `sonar-host-url`     | Secret text            | `SONAR_HOST_URL` (en on-premise puede ser la URL interna) |
+| `sonar-project-key`  | Secret text (opcional) | `SONAR_PROJECT_KEY`                                       |
+| `sonar-organization` | Secret text (Cloud)    | `SONAR_ORGANIZATION`                                      |
+| `expo-token`         | Secret text            | `EXPO_TOKEN`                                              |
 
 ### Variables de la app en los builds EAS
 
@@ -78,12 +78,38 @@ Sin esa variable el build se genera igual, pero la app muestra el error de "URL 
 
 ### Local
 
-- `.env.local` (ignorado por git): `EXPO_PUBLIC_API_BASE_URL` para `expo start` y, opcionalmente, `SONAR_HOST_URL`/`SONAR_TOKEN`/`SONAR_ADMIN_PASSWORD` para el script de setup y el scanner.
+- `.env.local` (ignorado por git): `EXPO_PUBLIC_API_BASE_URL` para `expo start` y, opcionalmente, `SONAR_HOST_URL`/`SONAR_TOKEN`/`SONAR_ORGANIZATION`/`SONAR_PROJECT_KEY` para el scanner y `SONAR_ADMIN_PASSWORD` para el script de setup (solo self-hosted).
 - `.env` también está en `.gitignore` y el script de setup lo lee si existe.
 
-## SonarQube self-hosted
+## SonarQube Cloud (opción en uso)
 
-Se usa **el mismo servidor SonarQube Community que el backend** (un servidor, varios proyectos).
+El análisis de GitHub Actions corre contra **SonarQube Cloud** (`https://sonarcloud.io`). A diferencia de un servidor en `localhost`, es público: los runners de GitHub llegan a él y el análisis se ejecuta de verdad en cada PR. El workflow y el Jenkinsfile detectan Cloud porque `SONAR_ORGANIZATION` tiene valor y agregan `-Dsonar.organization`; con `SONAR_ORGANIZATION` vacío funcionan como self-hosted.
+
+### Configuración (una sola vez)
+
+1. En sonarcloud.io, dentro de la organización, **importar el repo** `PGC36/pms-hotel-mobile` (_+ → Analyze new project_).
+2. En el proyecto: _Administration → Analysis Method_ → **desactivar Automatic Analysis**. Si queda activo, el análisis desde CI falla ("You are running CI analysis while Automatic Analysis is enabled") y además el análisis automático no importa la cobertura de `coverage/lcov.info`.
+3. Generar un token en _My Account → Security_.
+4. Cargar en GitHub los secrets `SONAR_TOKEN`, `SONAR_HOST_URL=https://sonarcloud.io`, `SONAR_PROJECT_KEY` (el key que muestra _Project Information_) y `SONAR_ORGANIZATION`.
+
+No se usa `scripts/sonarqube/setup-sonarqube.sh` ni `SONAR_ADMIN_PASSWORD`: el proyecto, el gate y el token se administran desde la UI de SonarQube Cloud.
+
+### Quality Gate en Cloud
+
+En el plan gratuito, SonarQube Cloud aplica el gate **Sonar way** (entre otras condiciones, cobertura ≥ 80 % en código nuevo) y los gates personalizados requieren un plan de pago; confirmarlo en _Organization → Quality Gates_. Si el plan lo permite, crear un gate con las condiciones de la tabla de "Aurora Mobile" (más abajo) y asignarlo al proyecto. La configuración de `sonar.coverage.exclusions` de `sonar-project.properties` aplica igual en Cloud.
+
+A diferencia de Community Build, SonarQube Cloud **sí analiza PR y ramas**: en GitHub Actions el scanner detecta el PR solo y el Quality Gate evalúa el código nuevo del PR.
+
+Análisis manual en local contra Cloud:
+
+```bash
+npm run test:coverage
+npm run sonar -- -Dsonar.host.url=https://sonarcloud.io -Dsonar.organization=<organizacion> -Dsonar.projectKey=<project-key> -Dsonar.token=<SONAR_TOKEN> -Dsonar.qualitygate.wait=true
+```
+
+## SonarQube self-hosted (alternativa)
+
+Si no se usa Cloud, se puede usar **el mismo servidor SonarQube Community que el backend** (un servidor, varios proyectos). En este caso `SONAR_ORGANIZATION` queda vacío.
 
 ### 1. Levantar el servidor (desde el repo del backend)
 
@@ -154,7 +180,7 @@ npm run sonar -- -Dsonar.host.url=http://localhost:9000 -Dsonar.token=<SONAR_TOK
 | Servidor UP y Quality Gate aprobado     | ✅ en el resumen                                                                           | Etapa verde                                            |
 | Servidor UP y Quality Gate rechazado    | ❌ el job falla y bloquea el PR (si el check es requerido)                                 | La etapa falla                                         |
 
-**Situación actual:** el servidor corre en `http://localhost:9000` y no es público, así que los runners de GitHub no llegan a él. Mientras no haya túnel ni runner self-hosted, en GitHub Actions el análisis queda **OMITIDO** (con `SONAR_HOST_URL` apuntando a localhost, el aviso dice que no responde UP). El análisis efectivo corre en **Jenkins on-premise** con la URL interna y en local. Para activarlo en GitHub basta con exponer el servidor (túnel o dominio) o registrar un runner self-hosted, y cargar los secrets: no hay que tocar código.
+**Con self-hosted en `localhost`:** los runners de GitHub no llegan a `http://localhost:9000`, así que en GitHub Actions el análisis queda **OMITIDO** (el aviso dice que no responde UP). El análisis efectivo correría en **Jenkins on-premise** con la URL interna y en local. Para activarlo en GitHub hay que exponer el servidor (túnel o dominio) o registrar un runner self-hosted. Con SonarQube Cloud este problema no existe.
 
 ### 6. Limitaciones de SonarQube Community Build
 

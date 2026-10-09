@@ -4,7 +4,8 @@
 #   build de validación (expo export, sin credenciales) y SonarQube + Quality Gate.
 # - mobile-eas-build.yml lo reutiliza (workflow_call) antes de generar builds de EAS.
 #
-# SonarQube es self-hosted y no es público: si faltan SONAR_TOKEN/SONAR_HOST_URL, o el servidor
+# SonarQube: SonarQube Cloud (SONAR_HOST_URL=https://sonarcloud.io + SONAR_ORGANIZATION) o un
+# servidor self-hosted (sin SONAR_ORGANIZATION). Si faltan SONAR_TOKEN/SONAR_HOST_URL, o el servidor
 # no responde UP desde el runner, el análisis se reporta como OMITIDO (nunca como aprobado) y el
 # resto del pipeline decide el resultado.
 name: Mobile CI
@@ -34,6 +35,7 @@ jobs:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
       SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
+      SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }} # solo SonarQube Cloud
 
     steps:
       - name: Checkout
@@ -112,6 +114,7 @@ jobs:
             -Dsonar.host.url="$SONAR_HOST_URL" \
             -Dsonar.token="$SONAR_TOKEN" \
             ${SONAR_PROJECT_KEY:+-Dsonar.projectKey="$SONAR_PROJECT_KEY"} \
+            ${SONAR_ORGANIZATION:+-Dsonar.organization="$SONAR_ORGANIZATION"} \
             -Dsonar.qualitygate.wait=true \
             -Dsonar.qualitygate.timeout=300
 
@@ -136,7 +139,7 @@ jobs:
           }
           if [ "$SONAR_ENABLED" = "true" ]; then
             case "$SONAR" in
-              success) sonar_result="✅ Quality Gate \"Aurora Mobile\" aprobado" ;;
+              success) sonar_result="✅ Quality Gate aprobado" ;;
               failure) sonar_result="❌ Quality Gate rechazado o error de análisis (ver log y SonarQube)" ;;
               *) sonar_result="⏭️ No se ejecutó (falló un paso previo)" ;;
             esac
