@@ -3,7 +3,6 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
 /** Rutas de `AuthNavigator` — accesibles solo sin sesión. */
 export type AuthStackParamList = {
   Login: undefined;
-  GuestLogin: undefined;
   LinkBooking: undefined;
 };
 
@@ -17,6 +16,24 @@ export type StaffTabParamList = {
   Concierge: NavigatorScreenParams<ConciergeStackParamList> | undefined;
 };
 
+export type RoomServiceTabParamList = {
+  OrdersTab: NavigatorScreenParams<RoomServiceStackParamList> | undefined;
+  MenuTab: NavigatorScreenParams<RoomServiceStackParamList> | undefined;
+  HistoryTab: NavigatorScreenParams<RoomServiceStackParamList> | undefined;
+};
+
+export type ConciergeTabParamList = {
+  RequestsTab: NavigatorScreenParams<ConciergeStackParamList> | undefined;
+  RoomsTab: NavigatorScreenParams<ConciergeStackParamList> | undefined;
+  HistoryTab: NavigatorScreenParams<ConciergeStackParamList> | undefined;
+};
+
+export type HousekeepingTabParamList = {
+  RoomsTab: NavigatorScreenParams<HousekeepingStackParamList> | undefined;
+  RequestsTab: NavigatorScreenParams<HousekeepingStackParamList> | undefined;
+  HistoryTab: NavigatorScreenParams<HousekeepingStackParamList> | undefined;
+};
+
 export type ConciergeStackParamList = {
   Inbox: undefined;
   Detail: { requestId: string };
@@ -26,9 +43,7 @@ export type ConciergeStackParamList = {
 };
 
 /**
- * Stack interno de la única pestaña de limpieza (MOV-09). Solicitudes,
- * reporte de desperfectos e historial se agregan aquí — no como pestañas
- * nuevas de `StaffNavigator`.
+ * Rutas de cada pila interna de Limpieza (MOV-09).
  */
 export type HousekeepingStackParamList = {
   RoomList: undefined;

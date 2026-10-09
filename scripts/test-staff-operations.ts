@@ -16,6 +16,7 @@ import {
   SERVICE_REQUEST_STATUS_TRANSITIONS,
   type ServiceRequestStatus,
 } from '../src/shared/constants/statuses';
+import { filterMyConciergeHistory } from '../src/modules/concierge/services/concierge-history';
 
 function assertEqual(actual: unknown, expected: unknown, message: string) {
   if (actual !== expected)
@@ -93,6 +94,25 @@ const concierge = mapConciergeDTOToModel({
 assertEqual(mapConciergeToTask(concierge).status, 'inProgress', 'Estado concierge');
 assertEqual(mapConciergeToTask(concierge).roomLabel, 'Habitación 202', 'Habitación concierge');
 assertEqual(concierge.completedByUserEmail, 'staff@example.test', 'Ejecutor concierge');
+const legacyConcierge = mapConciergeDTOToModel({
+  id: 'concierge-legacy',
+  bookingId: 'booking-legacy',
+  roomId: 'room-1',
+  roomNumber: '202',
+  guestName: 'Carlos Reyes',
+  responsibleUserEmail: 'staff@example.test',
+  type: 'concierge',
+  description: 'Reservar cena demo',
+  status: 'completed',
+  notes: null,
+  requestedAt: '2026-10-05T10:00:00Z',
+  updatedAt: '2026-10-05T11:00:00Z',
+} satisfies ConciergeRequestDTO);
+assertDeepEqual(
+  filterMyConciergeHistory([legacyConcierge], 'STAFF@example.test').map((task) => task.id),
+  ['concierge-legacy'],
+  'El historial usa el responsable cuando falta el ejecutor registrado',
+);
 assertValidTransition(SERVICE_REQUEST_STATUS_TRANSITIONS, 'pending', 'accepted', 'ServiceRequest');
 assertValidTransition(
   SERVICE_REQUEST_STATUS_TRANSITIONS,

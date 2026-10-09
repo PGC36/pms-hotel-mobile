@@ -69,7 +69,9 @@ export function StaffSessionBar() {
       ) : (
         <View style={styles.row}>
           <Text style={styles.user} numberOfLines={1}>
-            {user.fullName} · {STAFF_ROLE_LABELS[user.role]}
+            {user.fullName === STAFF_ROLE_LABELS[user.role]
+              ? `Sesión de ${STAFF_ROLE_LABELS[user.role]}`
+              : `${user.fullName} · ${STAFF_ROLE_LABELS[user.role]}`}
           </Text>
           <Pressable
             onPress={() => setIsConfirming(true)}

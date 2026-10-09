@@ -1,4 +1,4 @@
-import { ApiConfigError } from '@/shared/services/api-client';
+import { ApiConfigError } from '@/shared/services/api-config-error';
 import { HttpError } from '@/shared/services/http-client';
 
 export type GuestAuthErrorKind =
@@ -49,8 +49,16 @@ function getErrorKind(error: unknown): GuestAuthErrorKind {
       return 'invalidCredentials';
     }
     if (error.status === 400) {
-      if (/no active stay/i.test(message)) return 'noActiveStay';
-      if (/expired or not yet active/i.test(message)) return 'stayNotActive';
+      if (/no active stay|no (?:tiene|cuenta con) .*estad[ií]a activa/i.test(message)) {
+        return 'noActiveStay';
+      }
+      if (
+        /expired or not yet active|estad[ií]a .*no est[aá] activa|ya venc[ií]o|todav[ií]a no ha comenzado/i.test(
+          message,
+        )
+      ) {
+        return 'stayNotActive';
+      }
       return 'invalidCredentials';
     }
     if (error.status === 403) return 'forbidden';

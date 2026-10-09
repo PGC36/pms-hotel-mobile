@@ -5,6 +5,10 @@ import {
   createStaffAuthApi,
 } from '../src/modules/auth/services/staff-auth-api';
 import { AuthServiceError } from '../src/modules/auth/services/auth-error';
+import {
+  callGuestAuthApi,
+  GuestAuthServiceError,
+} from '../src/modules/auth/services/guest-auth-error';
 import { STAFF_ROLES } from '../src/shared/constants/roles';
 import { HttpError } from '../src/shared/services/http-client';
 import {
@@ -320,9 +324,26 @@ function testWebSecureStorage(): void {
   assertEqual(getWebSecureItem('test-token'), null, 'El token puede eliminarse al cerrar sesión');
 }
 
+async function testGuestStayErrorTranslation(): Promise<void> {
+  try {
+    await callGuestAuthApi(async () => {
+      throw new HttpError(400, 'HTTP 400', {
+        message: 'La estancia no está activa: ya venció o todavía no ha comenzado.',
+      });
+    });
+    throw new Error('El backend debía rechazar la estadía demo vencida');
+  } catch (error) {
+    assert(
+      error instanceof GuestAuthServiceError && error.kind === 'stayNotActive',
+      'El mensaje en español de estadía vencida no debe mostrarse como contraseña incorrecta',
+    );
+  }
+}
+
 void testSessionRestore()
   .then(testStaffAuthApi)
   .then(testWebSecureStorage)
+  .then(testGuestStayErrorTranslation)
   .then(() => console.log(' Todas las pruebas de restauración y almacenamiento pasaron.'))
   .catch((error: unknown) => {
     console.error(error);

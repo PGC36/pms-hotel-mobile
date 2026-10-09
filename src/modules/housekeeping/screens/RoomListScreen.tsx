@@ -1,5 +1,5 @@
-import { useCallback, useLayoutEffect, useMemo, useReducer } from 'react';
-import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useMemo, useReducer } from 'react';
+import { RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -111,86 +111,53 @@ export function RoomListScreen({ navigation }: Props) {
     load();
   }, [load]);
 
-  // En el encabezado (no en la lista) para que siga visible aunque la API de
-  // habitaciones falle: las solicitudes no dependen de ella.
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <View style={styles.headerActions}>
-          <Pressable
-            onPress={() => navigation.navigate('Requests')}
-            accessibilityRole="button"
-            accessibilityLabel="Ver solicitudes de huéspedes"
-            hitSlop={spacing.sm}
-            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-          >
-            <Text style={styles.headerAction}>Solicitudes</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => navigation.navigate('History')}
-            accessibilityRole="button"
-            accessibilityLabel="Ver mi historial de tareas completadas"
-            hitSlop={spacing.sm}
-            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-          >
-            <Text style={styles.headerAction}>Historial</Text>
-          </Pressable>
-        </View>
-      ),
-    });
-  }, [navigation]);
-
   const sections = useMemo(() => buildFloorSections(state.rooms), [state.rooms]);
-
-  if (state.status === 'loading') {
-    return <LoadingState message="Cargando habitaciones..." />;
-  }
-
-  if (state.status === 'error') {
-    return (
-      <ErrorState
-        title="No se pudieron cargar las habitaciones"
-        description={state.errorMessage ?? undefined}
-        onRetry={retry}
-      />
-    );
-  }
 
   return (
     <View style={styles.container}>
-      <SectionList
-        sections={sections}
-        keyExtractor={(room) => room.id}
-        renderSectionHeader={({ section }) => (
-          <Text style={styles.sectionTitle} accessibilityRole="header">
-            {section.title}
-          </Text>
-        )}
-        renderItem={({ item }) => (
-          <RoomCard
-            room={item}
-            onPress={(room) => navigation.navigate('RoomDetail', { roomId: room.id })}
-          />
-        )}
-        stickySectionHeadersEnabled={false}
-        contentContainerStyle={styles.listContent}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        refreshControl={
-          <RefreshControl
-            refreshing={state.isRefreshing}
-            onRefresh={handleRefresh}
-            colors={[colors.brand[600]]}
-            tintColor={colors.brand[600]}
-          />
-        }
-        ListEmptyComponent={
-          <EmptyState
-            icon="🛏️"
-            title="No hay habitaciones"
-            description="El servidor no devolvió habitaciones para limpieza."
-          />
-        }
-      />
+      {state.status === 'loading' ? (
+        <LoadingState message="Cargando habitaciones..." />
+      ) : state.status === 'error' ? (
+        <ErrorState
+          title="No se pudieron cargar las habitaciones"
+          description={state.errorMessage ?? undefined}
+          onRetry={retry}
+        />
+      ) : (
+        <SectionList
+          sections={sections}
+          keyExtractor={(room) => room.id}
+          renderSectionHeader={({ section }) => (
+            <Text style={styles.sectionTitle} accessibilityRole="header">
+              {section.title}
+            </Text>
+          )}
+          renderItem={({ item }) => (
+            <RoomCard
+              room={item}
+              onPress={(room) => navigation.navigate('RoomDetail', { roomId: room.id })}
+            />
+          )}
+          stickySectionHeadersEnabled={false}
+          contentContainerStyle={styles.listContent}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={state.isRefreshing}
+              onRefresh={handleRefresh}
+              colors={[colors.brand[600]]}
+              tintColor={colors.brand[600]}
+            />
+          }
+          ListEmptyComponent={
+            <EmptyState
+              icon="🛏️"
+              title="No hay habitaciones"
+              description="El servidor no devolvió habitaciones para limpieza."
+            />
+          }
+        />
+      )}
     </View>
   );
 }
@@ -212,13 +179,5 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: spacing.sm,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  headerAction: {
-    ...typography.button,
-    color: colors.brand[600],
   },
 });

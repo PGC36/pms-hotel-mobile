@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/modules/auth/context/AuthContext';
 import { Button } from '@/shared/components';
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function StayHeader({ guestName, roomNumber }: Props) {
+  const insets = useSafeAreaInsets();
   const { logout } = useAuth();
   const [isConfirming, setIsConfirming] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -37,7 +39,7 @@ export function StayHeader({ guestName, roomNumber }: Props) {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top + spacing.md }]}>
       {isConfirming ? (
         <View style={styles.confirm}>
           <Text style={styles.confirmTitle} accessibilityRole="header">

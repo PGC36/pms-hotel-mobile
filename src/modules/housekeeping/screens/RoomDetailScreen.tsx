@@ -13,7 +13,11 @@ import { colors, spacing, typography } from '@/shared/theme';
 import { RoomStatusBadge } from '../components/RoomStatusBadge';
 import type { HousekeepingChecklistModel } from '../models/checklist.model';
 import type { RoomModel } from '../models/room.model';
-import { getTurnoverChecklist, setChecklistItemChecked } from '../services/checklist.service';
+import {
+  completeRequestChecklist,
+  getTurnoverChecklist,
+  setChecklistItemChecked,
+} from '../services/checklist.service';
 import {
   completeCleaning,
   getRoomById,
@@ -233,6 +237,29 @@ export function RoomDetailScreen({ route, navigation }: Props) {
     }
   }
 
+  async function handleCompleteChecklist() {
+    if (!checklist || submittingRef.current) return;
+    submittingRef.current = true;
+    setIsSubmitting(true);
+    setActionError(null);
+    dispatchChecklist({ type: 'LOADING' });
+    try {
+      dispatchChecklist({
+        type: 'LOADED',
+        checklist: await completeRequestChecklist(checklist.id),
+      });
+    } catch (error) {
+      await loadChecklist();
+      dispatchChecklist({
+        type: 'ERROR',
+        message: getErrorMessage(error, 'No se pudo completar la lista. Intenta de nuevo.'),
+      });
+    } finally {
+      submittingRef.current = false;
+      setIsSubmitting(false);
+    }
+  }
+
   if (state.status === 'loading') {
     return <LoadingState message="Cargando habitación..." />;
   }
@@ -324,6 +351,15 @@ export function RoomDetailScreen({ route, navigation }: Props) {
                   <Text style={styles.body}>{item.label}</Text>
                 </Pressable>
               ))}
+              {room.housekeepingStatus === 'clean' && checklist.status !== 'completed' ? (
+                <Button
+                  label="Completar checklist"
+                  disabled={pendingItems > 0 || isSubmitting}
+                  loading={isSubmitting}
+                  onPress={() => void handleCompleteChecklist()}
+                  fullWidth
+                />
+              ) : null}
             </>
           ) : null}
           {room.housekeepingStatus === 'cleaning' && checklist && pendingItems > 0 ? (
