@@ -98,7 +98,8 @@ npm run ci               # todo lo anterior en el orden del pipeline
 
 GitHub Actions (`.github/workflows/`) y Jenkins (`Jenkinsfile`) validan cada PR (formato, tipos,
 lint, pruebas, build de validación y SonarQube Cloud con su Quality Gate). Además generan
-builds nativos con Expo EAS: preview para QA en cada merge a `develop` y release en tags `vX.Y.Z`,
+builds nativos con Expo EAS: preview para QA al mergear a `develop` un PR con la etiqueta `build`
+(o a mano) y release en tags `vX.Y.Z`,
 sin publicar en tiendas. Secretos, SonarQube, perfiles EAS y prerequisitos pendientes en
 [`docs/CI-CD.md`](./docs/CI-CD.md).
 

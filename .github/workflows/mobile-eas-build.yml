@@ -1,13 +1,16 @@
 # Builds nativos con Expo EAS (equivalente en Jenkins: etapas "EAS build" del Jenkinsfile).
 # Ver docs/CI-CD.md.
 #
-# - Push a develop (merge de PR)  -> perfil "preview": APK Android instalable + build de simulador iOS.
-# - Tag vX.Y.Z                    -> perfil "production": AAB Android firmado + build de simulador iOS,
-#                                    adjuntos a un GitHub Release. NO se publica en tiendas.
-# - workflow_dispatch             -> perfil a elección.
+# Los builds nativos consumen la cuota mensual de EAS, así que solo se generan cuando se piden:
 #
-# Siempre corre antes la validación completa (ci.yml). Si falta EXPO_TOKEN o el proyecto no está
-# vinculado a EAS (extra.eas.projectId en app.json), los builds se omiten con un aviso.
+# - Merge a develop de un PR con la etiqueta "build" -> perfil "preview": APK Android instalable.
+#   Sin la etiqueta no se genera nada (para revisar cambios basta Expo Go con `npx expo start`).
+# - Tag vX.Y.Z           -> perfil "production": AAB Android firmado + build de simulador iOS,
+#                           adjuntos a un GitHub Release. NO se publica en tiendas.
+# - workflow_dispatch    -> perfil a elección; iOS (simulador) opcional.
+#
+# Antes de cada build corre la validación completa (ci.yml). Si falta EXPO_TOKEN o el proyecto no
+# está vinculado a EAS (extra.eas.projectId en app.json), los builds se omiten con un aviso.
 name: Mobile EAS Build
 
 on:
@@ -21,55 +24,81 @@ on:
         type: choice
         options: [preview, production]
         default: preview
+      ios:
+        description: Incluir build de simulador iOS
+        type: boolean
+        default: false
 
 permissions:
   contents: read
+  pull-requests: read # leer las etiquetas del PR mergeado
 
 concurrency:
   group: mobile-eas-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  validate:
-    name: Validación
-    uses: ./.github/workflows/ci.yml
-    secrets: inherit
-
   resolve:
-    name: Resolver perfil y prerequisitos
-    needs: validate
+    name: Decidir build, perfil y prerequisitos
     runs-on: ubuntu-latest
     outputs:
-      profile: ${{ steps.profile.outputs.profile }}
-      version: ${{ steps.profile.outputs.version }}
-      enabled: ${{ steps.prereq.outputs.enabled }}
+      profile: ${{ steps.decide.outputs.profile }}
+      version: ${{ steps.decide.outputs.version }}
+      platforms: ${{ steps.decide.outputs.platforms }}
+      enabled: ${{ steps.prereq.outputs.enabled == 'true' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Perfil y versión
-        id: profile
+      - name: Perfil, versión y plataformas
+        id: decide
         env:
+          GH_TOKEN: ${{ github.token }}
           INPUT_PROFILE: ${{ inputs.profile }}
+          INPUT_IOS: ${{ inputs.ios }}
         run: |
           version=$(node -p "require('./app.json').expo.version")
+          platforms='["android"]'
+          requested=true
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then
             profile=production
+            platforms='["android","ios"]'
             if [ "${GITHUB_REF_NAME#v}" != "$version" ]; then
               echo "::error title=Versión inconsistente::El tag $GITHUB_REF_NAME no coincide con expo.version=$version de app.json. Actualiza app.json en main antes de etiquetar."
               exit 1
             fi
-          elif [ -n "$INPUT_PROFILE" ]; then
+          elif [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
             profile="$INPUT_PROFILE"
+            if [ "$INPUT_IOS" = "true" ]; then platforms='["android","ios"]'; fi
           else
+            # Push a develop: solo hay build si el PR mergeado tiene la etiqueta "build".
             profile=preview
+            pr=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" \
+              --jq '.[0] // empty | "\(.number) \(any(.labels[]; .name == "build"))"')
+            if [ -z "$pr" ]; then
+              requested=false
+              reason="el push a develop no viene de un PR"
+            elif [ "${pr#* }" != "true" ]; then
+              requested=false
+              reason="el PR #${pr%% *} no tiene la etiqueta \"build\""
+            else
+              echo "PR #${pr%% *} con etiqueta \"build\": se genera el preview."
+            fi
           fi
+          if [ "$requested" = "false" ]; then
+            echo "::notice title=EAS build no solicitado::Sin build: ${reason}. Para generarlo, agrega la etiqueta \"build\" al PR antes de mergear o lánzalo a mano (Actions → Mobile EAS Build → Run workflow)."
+            echo "## EAS build no solicitado" >> "$GITHUB_STEP_SUMMARY"
+            echo "Sin build: ${reason}. No se consumió cuota de EAS." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "requested=$requested" >> "$GITHUB_OUTPUT"
           echo "profile=$profile" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "Perfil: $profile — versión visible: $version"
+          echo "platforms=$platforms" >> "$GITHUB_OUTPUT"
+          echo "Perfil: $profile — versión visible: $version — plataformas: $platforms — solicitado: $requested"
 
       - name: Verificar EXPO_TOKEN y proyecto EAS
         id: prereq
+        if: steps.decide.outputs.requested == 'true'
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
@@ -85,16 +114,23 @@ jobs:
           fi
           echo "enabled=true" >> "$GITHUB_OUTPUT"
 
+  validate:
+    name: Validación
+    needs: resolve
+    if: needs.resolve.outputs.enabled == 'true'
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
   build:
     name: EAS ${{ needs.resolve.outputs.profile }} (${{ matrix.platform }})
-    needs: resolve
+    needs: [resolve, validate]
     if: needs.resolve.outputs.enabled == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
-        platform: [android, ios]
+        platform: ${{ fromJSON(needs.resolve.outputs.platforms) }}
     env:
       PROFILE: ${{ needs.resolve.outputs.profile }}
       VERSION: ${{ needs.resolve.outputs.version }}

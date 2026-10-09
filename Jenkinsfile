@@ -10,8 +10,16 @@
 //   sonar-project-key  Secret text  -> SONAR_PROJECT_KEY (default: sonar-project.properties)
 //   sonar-organization Secret text  -> SONAR_ORGANIZATION (solo SonarQube Cloud)
 //   expo-token         Secret text  -> EXPO_TOKEN (builds EAS)
+//
+// Los builds EAS consumen la cuota mensual de Expo: en develop solo se generan si se lanza el job
+// con EAS_PREVIEW_BUILD (equivale a la etiqueta "build" del PR en GitHub Actions).
 pipeline {
     agent any
+
+    parameters {
+        booleanParam(name: 'EAS_PREVIEW_BUILD', defaultValue: false, description: 'develop: generar el build preview (APK Android) en EAS')
+        booleanParam(name: 'EAS_PREVIEW_IOS', defaultValue: false, description: 'develop: incluir también el build de simulador iOS en el preview')
+    }
 
     options {
         timestamps()
@@ -123,9 +131,14 @@ pipeline {
         }
 
         stage('EAS build preview') {
-            when { branch 'develop' }
+            when {
+                allOf {
+                    branch 'develop'
+                    expression { params.EAS_PREVIEW_BUILD }
+                }
+            }
             steps {
-                script { easBuild('preview') }
+                script { easBuild('preview', params.EAS_PREVIEW_IOS) }
             }
         }
 
@@ -137,17 +150,17 @@ pipeline {
                     if (env.TAG_NAME != "v${version}") {
                         error("El tag ${env.TAG_NAME} no coincide con expo.version=${version} de app.json.")
                     }
-                    easBuild('production')
+                    easBuild('production', true)
                 }
             }
         }
     }
 }
 
-// Lanza los builds Android e iOS del perfil dado, espera a que terminen en EAS y archiva el
-// artefacto descargable. iOS usa siempre build de simulador (no hay cuenta Apple Developer).
-// Nunca ejecuta `eas submit`: no se publica en tiendas.
-def easBuild(String profile) {
+// Lanza el build Android (y, si includeIos, el de iOS) del perfil dado, espera a que terminen en
+// EAS y archiva el artefacto descargable. iOS usa siempre build de simulador (no hay cuenta Apple
+// Developer). Nunca ejecuta `eas submit`: no se publica en tiendas.
+def easBuild(String profile, boolean includeIos) {
     try {
         withCredentials([string(credentialsId: 'expo-token', variable: 'EXPO_TOKEN')]) {
             def projectId = sh(script: "node -p \"require('./app.json').expo.extra?.eas?.projectId ?? ''\"", returnStdout: true).trim()
@@ -155,7 +168,10 @@ def easBuild(String profile) {
                 echo "EAS build omitido: app.json no tiene extra.eas.projectId (ejecuta 'npx eas-cli init')."
                 return
             }
-            def platforms = [android: profile, ios: profile == 'production' ? 'production-simulator' : profile]
+            def platforms = [android: profile]
+            if (includeIos) {
+                platforms.ios = profile == 'production' ? 'production-simulator' : profile
+            }
             platforms.each { platform, easProfile ->
                 withEnv(["PLATFORM=${platform}", "EAS_PROFILE=${easProfile}", "PROFILE=${profile}"]) {
                     sh '''

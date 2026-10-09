@@ -6,14 +6,14 @@ La app es Expo/React Native: **no se empaqueta en Docker**. Los entregables son 
 
 ## Resumen
 
-| Evento                         | Pipeline                                 | Qué hace                                                                                                                                                        |
-| ------------------------------ | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| PR hacia `develop` o `main`    | `.github/workflows/ci.yml`               | `npm ci`, formato, TypeScript, lint, pruebas + cobertura, build de validación (`expo export`), SonarQube + Quality Gate (si hay secrets y el servidor responde) |
-| Push a `main`                  | `.github/workflows/ci.yml`               | La misma validación sobre el código ya fusionado                                                                                                                |
-| Push a `develop` (merge de PR) | `.github/workflows/mobile-eas-build.yml` | Reejecuta la validación y genera el build **preview** de QA: APK Android instalable + build de simulador iOS                                                    |
-| Tag `vX.Y.Z`                   | `.github/workflows/mobile-eas-build.yml` | Reejecuta la validación y genera el build **production**: AAB Android firmado + build de simulador iOS, adjuntos a un GitHub Release                            |
-| Manual (`workflow_dispatch`)   | ambos                                    | `ci.yml` sin parámetros; `mobile-eas-build.yml` con perfil `preview` o `production`                                                                             |
-| Jenkins on-premise             | `Jenkinsfile`                            | Las mismas validaciones y SonarQube; build preview en `develop` y release en tags                                                                               |
+| Evento                         | Pipeline                                 | Qué hace                                                                                                                                                         |
+| ------------------------------ | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PR hacia `develop` o `main`    | `.github/workflows/ci.yml`               | `npm ci`, formato, TypeScript, lint, pruebas + cobertura, build de validación (`expo export`), SonarQube + Quality Gate (si hay secrets y el servidor responde)  |
+| Push a `main`                  | `.github/workflows/ci.yml`               | La misma validación sobre el código ya fusionado                                                                                                                 |
+| Push a `develop` (merge de PR) | `.github/workflows/mobile-eas-build.yml` | **Solo si el PR tiene la etiqueta `build`**: reejecuta la validación y genera el build **preview** de QA (APK Android instalable). Sin la etiqueta, no hace nada |
+| Tag `vX.Y.Z`                   | `.github/workflows/mobile-eas-build.yml` | Reejecuta la validación y genera el build **production**: AAB Android firmado + build de simulador iOS, adjuntos a un GitHub Release                             |
+| Manual (`workflow_dispatch`)   | ambos                                    | `ci.yml` sin parámetros; `mobile-eas-build.yml` con perfil `preview` o `production` y simulador iOS opcional                                                     |
+| Jenkins on-premise             | `Jenkinsfile`                            | Las mismas validaciones y SonarQube; build preview en `develop` solo con el parámetro `EAS_PREVIEW_BUILD`, y release en tags                                     |
 
 Ninguna credencial está en el repositorio: todo llega por secrets de GitHub o credenciales de Jenkins. Si faltan, la etapa correspondiente **se omite con un aviso explícito** y nunca se reporta como aprobada. Las validaciones básicas (formato, tipos, lint, pruebas, build de validación) no necesitan ninguna credencial.
 
@@ -194,11 +194,11 @@ npm run sonar -- -Dsonar.host.url=http://localhost:9000 -Dsonar.token=<SONAR_TOK
 
 ### Perfiles (`eas.json`)
 
-| Perfil                 | Uso                           | Android                                                 | iOS                                                |
-| ---------------------- | ----------------------------- | ------------------------------------------------------- | -------------------------------------------------- |
-| `preview`              | QA, en cada merge a `develop` | APK (`distribution: internal`), instalable directamente | Build de simulador (`.tar.gz` con el `.app`)       |
-| `production`           | Release, en tags `vX.Y.Z`     | AAB (`app-bundle`) firmado, listo para Play Console     | Build firmado: **pendiente** (sin Apple Developer) |
-| `production-simulator` | Release iOS sin firma         | —                                                       | `production` + `simulator: true`                   |
+| Perfil                 | Uso                       | Android                                                 | iOS                                                       |
+| ---------------------- | ------------------------- | ------------------------------------------------------- | --------------------------------------------------------- |
+| `preview`              | QA, a pedido (ver abajo)  | APK (`distribution: internal`), instalable directamente | Build de simulador (`.tar.gz` con el `.app`), solo manual |
+| `production`           | Release, en tags `vX.Y.Z` | AAB (`app-bundle`) firmado, listo para Play Console     | Build firmado: **pendiente** (sin Apple Developer)        |
+| `production-simulator` | Release iOS sin firma     | —                                                       | `production` + `simulator: true`                          |
 
 - `cli.appVersionSource: "remote"` y `autoIncrement: true` en `production`: EAS administra y autoincrementa `versionCode` (Android) y `buildNumber` (iOS). La versión visible (`expo.version` de `app.json`, hoy `1.0.0`) se cambia a mano.
 - Identificadores: `com.pmshotel.mobile` (Android `package` e iOS `bundleIdentifier`, en `app.json`).
@@ -215,6 +215,22 @@ npx eas-cli build --platform android --profile preview   # primer build INTERACT
 El keystore Android lo genera y custodia EAS (credenciales remotas), nunca el repositorio. **El primer build Android tiene que ser interactivo**, porque en modo `--non-interactive` (CI) EAS no puede crear un keystore nuevo. A partir de ahí, Actions y Jenkins reutilizan el mismo keystore remoto. Para respaldarlo: `npx eas-cli credentials` → Android → _Download keystore_ (guárdalo fuera del repo).
 
 Después, crea el `EXPO_TOKEN` y cárgalo en GitHub y en Jenkins.
+
+### Cuándo se genera un build preview
+
+Cada build nativo consume la **cuota mensual de EAS**, así que los preview se generan solo cuando hacen falta (una app instalada para QA, una demo o una entrega). Para revisar cambios durante el desarrollo basta **Expo Go**: `npx expo start` y escanear el QR, sin build.
+
+| Situación                                       | ¿Build?                                                                       |
+| ----------------------------------------------- | ----------------------------------------------------------------------------- |
+| Abrir o actualizar un PR hacia `develop`/`main` | No. Solo validación (`ci.yml`), incluido `expo export`                        |
+| Mergear a `develop` un PR **sin** etiqueta      | No. El run lo informa ("EAS build no solicitado") y no consume cuota          |
+| Mergear a `develop` un PR **con** `build`       | Sí: validación completa + preview **Android** (APK)                           |
+| _Actions → Mobile EAS Build → Run workflow_     | Sí: el perfil elegido; marcar _Incluir build de simulador iOS_ para sumar iOS |
+| Tag `vX.Y.Z`                                    | Sí: production Android + simulador iOS y GitHub Release                       |
+
+- La etiqueta se agrega en el PR (_Labels → build_) **antes de mergear**. Al mergear, el workflow busca el PR del commit en `develop` y lee sus etiquetas.
+- El simulador iOS ya no se genera en los preview automáticos: sin cuenta Apple Developer solo sirve en macOS y gastaba la mitad de la cuota.
+- En Jenkins, el equivalente es lanzar el job de `develop` con _Build with Parameters_ → `EAS_PREVIEW_BUILD` (y `EAS_PREVIEW_IOS` para sumar iOS). Por defecto ambos están apagados.
 
 ### Artefactos para QA
 
@@ -233,7 +249,7 @@ Si falta `EXPO_TOKEN` o `app.json` no tiene `extra.eas.projectId`, el workflow l
 
 ## Jenkins
 
-`Jenkinsfile` replica las etapas de Actions: Checkout → `npm ci` → Formato → TypeScript → Lint → Pruebas + cobertura → Build de validación → SonarQube + Quality Gate → EAS build preview (rama `develop`) / EAS build release (tags).
+`Jenkinsfile` replica las etapas de Actions: Checkout → `npm ci` → Formato → TypeScript → Lint → Pruebas + cobertura → Build de validación → SonarQube + Quality Gate → EAS build preview (rama `develop`, solo con el parámetro `EAS_PREVIEW_BUILD`) / EAS build release (tags).
 
 - **Agente:** Linux, Node.js 20 (`>= 20.19.4`) con `npm` en el PATH, `git` y `curl`. No necesita Java: `@sonar/scan` descarga el motor del scanner (y su JRE) desde el servidor SonarQube. Tampoco necesita Docker.
 - **Plugins:** Pipeline, Git, Credentials Binding, Timestamper. Se recomienda un **Multibranch Pipeline** con descubrimiento de ramas y de **tags**, para que `branch 'develop'` y `buildingTag()` funcionen.
