@@ -45,7 +45,7 @@ export function AmenitiesListScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      load();
+      void load();
     }, [load]),
   );
 
