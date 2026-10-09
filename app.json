@@ -23,6 +23,12 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-secure-store"]
+    "plugins": ["expo-secure-store"],
+    "extra": {
+      "eas": {
+        "projectId": "61a85ac8-3959-40a9-bdc5-a947eafccd21"
+      }
+    },
+    "owner": "pgc3s-team"
   }
 }
