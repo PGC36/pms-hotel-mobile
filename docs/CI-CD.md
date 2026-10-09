@@ -98,6 +98,8 @@ No se usa `scripts/sonarqube/setup-sonarqube.sh` ni `SONAR_ADMIN_PASSWORD`: el p
 
 En el plan gratuito, SonarQube Cloud aplica el gate **Sonar way** (entre otras condiciones, cobertura ≥ 80 % en código nuevo) y los gates personalizados requieren un plan de pago; confirmarlo en _Organization → Quality Gates_. Si el plan lo permite, crear un gate con las condiciones de la tabla de "Aurora Mobile" (más abajo) y asignarlo al proyecto. La configuración de `sonar.coverage.exclusions` de `sonar-project.properties` aplica igual en Cloud.
 
+**Cambios pequeños:** la organización tiene activado _Ignore duplication and coverage on small changes_ (_Quality gate settings_, activo por defecto). Las condiciones de **cobertura y duplicación** sobre código nuevo se ignoran mientras el cambio tenga **menos de 20 líneas nuevas**; bugs, vulnerabilidades y ratings se evalúan siempre. Así, un arreglo de pocas líneas sin prueba no rompe el gate, y la exigencia de cobertura aplica a los cambios con lógica real. Conviene dejarlo activado: si se apaga a nivel de organización, queda apagado para todos los proyectos y no se puede reactivar por proyecto (con la organización activada, cada proyecto sí puede desactivarlo para sí mismo).
+
 A diferencia de Community Build, SonarQube Cloud **sí analiza PR y ramas**: en GitHub Actions el scanner detecta el PR solo y el Quality Gate evalúa el código nuevo del PR.
 
 Análisis manual en local contra Cloud:
