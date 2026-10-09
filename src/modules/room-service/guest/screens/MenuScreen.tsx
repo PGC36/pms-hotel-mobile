@@ -37,30 +37,66 @@ export function MenuScreen() {
       setRefreshing(false);
     }
   }, []);
-  useFocusEffect(useCallback(() => { void load(); }, [load]));
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
-  const visible = products.filter((product) =>
-    (category === null || product.category === category) &&
-    `${product.name} ${product.description ?? ''}`.toLowerCase().includes(search.trim().toLowerCase()),
+  const visible = products.filter(
+    (product) =>
+      (category === null || product.category === category) &&
+      `${product.name} ${product.description ?? ''}`
+        .toLowerCase()
+        .includes(search.trim().toLowerCase()),
   );
   if (loading && products.length === 0) return <LoadingState message="Cargando menú..." />;
-  if (error && products.length === 0) return <ErrorState title="No pudimos cargar el menú" description={error} onRetry={load} />;
+  if (error && products.length === 0)
+    return <ErrorState title="No pudimos cargar el menú" description={error} onRetry={load} />;
 
   return (
     <View style={styles.container}>
       <View style={styles.top}>
-        <TextInput value={search} onChangeText={setSearch} placeholder="Buscar productos" placeholderTextColor={colors.text.muted} style={styles.search} accessibilityLabel="Buscar productos" />
+        <TextInput
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Buscar productos"
+          placeholderTextColor={colors.text.muted}
+          style={styles.search}
+          accessibilityLabel="Buscar productos"
+        />
         <CategoryTabs value={category} onChange={setCategory} />
-        <Button label={`Carrito (${cart.items.reduce((total, item) => total + item.quantity, 0)})`} variant="secondary" onPress={() => navigation.navigate('Cart')} />
-        <Button label="Mis pedidos" variant="secondary" onPress={() => navigation.navigate('Orders')} />
+        <Button
+          label={`Carrito (${cart.items.reduce((total, item) => total + item.quantity, 0)})`}
+          variant="secondary"
+          onPress={() => navigation.navigate('Cart')}
+        />
+        <Button
+          label="Mis pedidos"
+          variant="secondary"
+          onPress={() => navigation.navigate('Orders')}
+        />
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </View>
       <FlatList
         data={visible}
         keyExtractor={(item) => item.id}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(); }} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              void load();
+            }}
+          />
+        }
         contentContainerStyle={styles.list}
-        ListEmptyComponent={<EmptyState title="No hay productos" description="Prueba otra categoría o vuelve más tarde." />}
+        ListEmptyComponent={
+          <EmptyState
+            title="No hay productos"
+            description="Prueba otra categoría o vuelve más tarde."
+          />
+        }
         renderItem={({ item }) => (
           <ProductCard
             product={item}
@@ -76,7 +112,16 @@ export function MenuScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.sand[50] },
   top: { gap: spacing.sm, paddingVertical: spacing.sm },
-  search: { ...typography.body, marginHorizontal: spacing.md, padding: spacing.sm, borderWidth: 1, borderColor: colors.sand[300], borderRadius: 6, backgroundColor: colors.white, color: colors.text.primary },
+  search: {
+    ...typography.body,
+    marginHorizontal: spacing.md,
+    padding: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.sand[300],
+    borderRadius: 6,
+    backgroundColor: colors.white,
+    color: colors.text.primary,
+  },
   list: { paddingTop: spacing.sm, paddingBottom: spacing.xl, flexGrow: 1 },
   error: { ...typography.caption, color: colors.state.danger, marginHorizontal: spacing.md },
 });

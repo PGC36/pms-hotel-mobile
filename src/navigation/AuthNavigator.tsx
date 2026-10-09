@@ -5,7 +5,6 @@ import { LoginScreen } from '@/modules/auth/screens/LoginScreen';
 
 import type { AuthStackParamList } from './routes';
 
-
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
 /** Sin sesión: formulario general, más el flujo secundario para vincular una reserva. */
@@ -17,4 +16,3 @@ export function AuthNavigator() {
     </Stack.Navigator>
   );
 }
-

@@ -27,7 +27,9 @@ export function RequestServiceScreen() {
   const navigation = useNavigation<Navigation>();
   const { params } = useRoute<RouteProp<GuestServicesStackParamList, 'CreateRequest'>>();
   const [notes, setNotes] = useState('');
-  const [preferredTime, setPreferredTime] = useState<(typeof preferredTimes)[number]>(preferredTimes[0]);
+  const [preferredTime, setPreferredTime] = useState<(typeof preferredTimes)[number]>(
+    preferredTimes[0],
+  );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [services, setServices] = useState<ConciergeServiceOption[]>([]);
@@ -37,7 +39,9 @@ export function RequestServiceScreen() {
   const [housekeepingServices, setHousekeepingServices] = useState<HousekeepingServiceOption[]>([]);
   const [loadingHousekeepingServices, setLoadingHousekeepingServices] = useState(false);
   const [selectedHousekeepingServiceId, setSelectedHousekeepingServiceId] = useState('');
-  const [housekeepingServiceLoadError, setHousekeepingServiceLoadError] = useState<string | null>(null);
+  const [housekeepingServiceLoadError, setHousekeepingServiceLoadError] = useState<string | null>(
+    null,
+  );
   const [housekeepingMode, setHousekeepingMode] = useState<'cleaning' | 'items'>('cleaning');
   const [items, setItems] = useState<HousekeepingItemOption[]>([]);
   const [loadingItems, setLoadingItems] = useState(false);
@@ -54,7 +58,9 @@ export function RequestServiceScreen() {
       setServices(availableServices);
       setSelectedServiceId(availableServices[0]?.id ?? '');
     } catch (cause) {
-      setServiceLoadError(cause instanceof Error ? cause.message : 'No se pudieron cargar los servicios.');
+      setServiceLoadError(
+        cause instanceof Error ? cause.message : 'No se pudieron cargar los servicios.',
+      );
     } finally {
       setLoadingServices(false);
     }
@@ -69,7 +75,9 @@ export function RequestServiceScreen() {
       setSelectedItemId(firstAvailable?.id ?? '');
       setQuantity(1);
     } catch (cause) {
-      setItemsLoadError(cause instanceof Error ? cause.message : 'No se pudieron cargar los artículos.');
+      setItemsLoadError(
+        cause instanceof Error ? cause.message : 'No se pudieron cargar los artículos.',
+      );
     } finally {
       setLoadingItems(false);
     }
@@ -80,11 +88,13 @@ export function RequestServiceScreen() {
     try {
       const options = await getGuestHousekeepingServices();
       setHousekeepingServices(options);
-      setSelectedHousekeepingServiceId((current) => options.some((option) => option.id === current)
-        ? current
-        : options[0]?.id ?? '');
+      setSelectedHousekeepingServiceId((current) =>
+        options.some((option) => option.id === current) ? current : (options[0]?.id ?? ''),
+      );
     } catch (cause) {
-      setHousekeepingServiceLoadError(cause instanceof Error ? cause.message : 'No se pudieron cargar las opciones.');
+      setHousekeepingServiceLoadError(
+        cause instanceof Error ? cause.message : 'No se pudieron cargar las opciones.',
+      );
     } finally {
       setLoadingHousekeepingServices(false);
     }
@@ -94,14 +104,17 @@ export function RequestServiceScreen() {
     if (isConcierge) void Promise.resolve().then(loadServices);
   }, [isConcierge, loadServices]);
   useEffect(() => {
-    if (!isConcierge && housekeepingMode === 'cleaning') void Promise.resolve().then(loadHousekeepingServices);
+    if (!isConcierge && housekeepingMode === 'cleaning')
+      void Promise.resolve().then(loadHousekeepingServices);
   }, [isConcierge, housekeepingMode, loadHousekeepingServices]);
   useEffect(() => {
     if (!isConcierge && housekeepingMode === 'items') void Promise.resolve().then(loadItems);
   }, [isConcierge, housekeepingMode, loadItems]);
 
   const selectedService = services.find((service) => service.id === selectedServiceId);
-  const selectedHousekeepingService = housekeepingServices.find((service) => service.id === selectedHousekeepingServiceId);
+  const selectedHousekeepingService = housekeepingServices.find(
+    (service) => service.id === selectedHousekeepingServiceId,
+  );
   const selectedItem = items.find((item) => item.id === selectedItemId);
   const maxQuantity = selectedItem ? 5 : 0;
 
@@ -125,12 +138,19 @@ export function RequestServiceScreen() {
       if (!isConcierge && housekeepingMode === 'items') {
         await createGuestHousekeepingItemRequest(selectedItem!.id, quantity, notes);
       } else {
-        const requestDescription = isConcierge ? selectedService!.name : selectedHousekeepingService!.name;
-        const requestNotes = !isConcierge && housekeepingMode === 'cleaning'
-          ? [preferredTime, notes.trim()].filter(Boolean).join(' · ')
-          : notes;
-        await createGuestRequest(params.type, requestDescription, requestNotes,
-          isConcierge ? selectedService?.id : selectedHousekeepingService?.id);
+        const requestDescription = isConcierge
+          ? selectedService!.name
+          : selectedHousekeepingService!.name;
+        const requestNotes =
+          !isConcierge && housekeepingMode === 'cleaning'
+            ? [preferredTime, notes.trim()].filter(Boolean).join(' · ')
+            : notes;
+        await createGuestRequest(
+          params.type,
+          requestDescription,
+          requestNotes,
+          isConcierge ? selectedService?.id : selectedHousekeepingService?.id,
+        );
       }
       navigation.replace('RequestList');
     } catch (cause) {
@@ -142,7 +162,9 @@ export function RequestServiceScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>{isConcierge ? 'Solicitar conserjería' : 'Limpieza y artículos'}</Text>
+      <Text style={styles.title}>
+        {isConcierge ? 'Solicitar conserjería' : 'Limpieza y artículos'}
+      </Text>
       <Text style={styles.subtitle}>La solicitud se enviará al equipo del hotel.</Text>
 
       {!isConcierge ? (
@@ -150,20 +172,36 @@ export function RequestServiceScreen() {
           <Pressable
             accessibilityRole="tab"
             accessibilityState={{ selected: housekeepingMode === 'cleaning' }}
-            onPress={() => { setHousekeepingMode('cleaning'); setError(null); }}
+            onPress={() => {
+              setHousekeepingMode('cleaning');
+              setError(null);
+            }}
             style={[styles.segment, housekeepingMode === 'cleaning' && styles.segmentSelected]}
           >
-            <Text style={[styles.segmentText, housekeepingMode === 'cleaning' && styles.segmentTextSelected]}>
+            <Text
+              style={[
+                styles.segmentText,
+                housekeepingMode === 'cleaning' && styles.segmentTextSelected,
+              ]}
+            >
               Solicitar limpieza
             </Text>
           </Pressable>
           <Pressable
             accessibilityRole="tab"
             accessibilityState={{ selected: housekeepingMode === 'items' }}
-            onPress={() => { setHousekeepingMode('items'); setError(null); }}
+            onPress={() => {
+              setHousekeepingMode('items');
+              setError(null);
+            }}
             style={[styles.segment, housekeepingMode === 'items' && styles.segmentSelected]}
           >
-            <Text style={[styles.segmentText, housekeepingMode === 'items' && styles.segmentTextSelected]}>
+            <Text
+              style={[
+                styles.segmentText,
+                housekeepingMode === 'items' && styles.segmentTextSelected,
+              ]}
+            >
               Pedir artículos
             </Text>
           </Pressable>
@@ -187,9 +225,13 @@ export function RequestServiceScreen() {
             >
               <View style={styles.optionCopy}>
                 <Text style={styles.optionTitle}>{service.name}</Text>
-                {service.description ? <Text style={styles.subtitle}>{service.description}</Text> : null}
+                {service.description ? (
+                  <Text style={styles.subtitle}>{service.description}</Text>
+                ) : null}
               </View>
-              <View style={[styles.radio, selectedServiceId === service.id && styles.radioSelected]} />
+              <View
+                style={[styles.radio, selectedServiceId === service.id && styles.radioSelected]}
+              />
             </Pressable>
           ))}
           <Input
@@ -207,8 +249,12 @@ export function RequestServiceScreen() {
         <View style={styles.options}>
           <Text style={styles.label}>Tipo de limpieza</Text>
           {loadingHousekeepingServices ? <ActivityIndicator color={colors.brand[600]} /> : null}
-          {!loadingHousekeepingServices && housekeepingServices.length === 0 && !housekeepingServiceLoadError ? (
-            <Text style={styles.subtitle}>No hay opciones de limpieza disponibles por el momento.</Text>
+          {!loadingHousekeepingServices &&
+          housekeepingServices.length === 0 &&
+          !housekeepingServiceLoadError ? (
+            <Text style={styles.subtitle}>
+              No hay opciones de limpieza disponibles por el momento.
+            </Text>
           ) : null}
           {housekeepingServices.map((service) => (
             <Pressable
@@ -216,13 +262,23 @@ export function RequestServiceScreen() {
               accessibilityState={{ selected: selectedHousekeepingServiceId === service.id }}
               key={service.id}
               onPress={() => setSelectedHousekeepingServiceId(service.id)}
-              style={[styles.option, selectedHousekeepingServiceId === service.id && styles.optionSelected]}
+              style={[
+                styles.option,
+                selectedHousekeepingServiceId === service.id && styles.optionSelected,
+              ]}
             >
               <View style={styles.optionCopy}>
                 <Text style={styles.optionTitle}>{service.name}</Text>
-                {service.description ? <Text style={styles.subtitle}>{service.description}</Text> : null}
+                {service.description ? (
+                  <Text style={styles.subtitle}>{service.description}</Text>
+                ) : null}
               </View>
-              <View style={[styles.radio, selectedHousekeepingServiceId === service.id && styles.radioSelected]} />
+              <View
+                style={[
+                  styles.radio,
+                  selectedHousekeepingServiceId === service.id && styles.radioSelected,
+                ]}
+              />
             </Pressable>
           ))}
           <Text style={styles.label}>Momento preferido</Text>
@@ -235,7 +291,12 @@ export function RequestServiceScreen() {
                 onPress={() => setPreferredTime(time)}
                 style={[styles.timeOption, preferredTime === time && styles.timeOptionSelected]}
               >
-                <Text style={[styles.timeOptionText, preferredTime === time && styles.timeOptionTextSelected]}>
+                <Text
+                  style={[
+                    styles.timeOptionText,
+                    preferredTime === time && styles.timeOptionTextSelected,
+                  ]}
+                >
                   {time}
                 </Text>
               </Pressable>
@@ -268,12 +329,22 @@ export function RequestServiceScreen() {
                 accessibilityState={{ selected, disabled: !available }}
                 disabled={!available}
                 key={item.id}
-                onPress={() => { setSelectedItemId(item.id); setQuantity(1); setError(null); }}
-                style={[styles.option, selected && styles.optionSelected, !available && styles.optionUnavailable]}
+                onPress={() => {
+                  setSelectedItemId(item.id);
+                  setQuantity(1);
+                  setError(null);
+                }}
+                style={[
+                  styles.option,
+                  selected && styles.optionSelected,
+                  !available && styles.optionUnavailable,
+                ]}
               >
                 <View style={styles.optionCopy}>
                   <Text style={styles.optionTitle}>{item.name}</Text>
-                  {item.description ? <Text style={styles.subtitle}>{item.description}</Text> : null}
+                  {item.description ? (
+                    <Text style={styles.subtitle}>{item.description}</Text>
+                  ) : null}
                   <Text style={styles.stockText}>{available ? 'Disponible' : 'No disponible'}</Text>
                 </View>
                 <View style={[styles.radio, selected && styles.radioSelected]} />
@@ -289,15 +360,22 @@ export function RequestServiceScreen() {
                 disabled={quantity <= 1}
                 onPress={() => setQuantity((value) => Math.max(1, value - 1))}
                 style={[styles.quantityButton, quantity <= 1 && styles.quantityButtonDisabled]}
-              ><Text style={styles.quantityButtonText}>−</Text></Pressable>
+              >
+                <Text style={styles.quantityButtonText}>−</Text>
+              </Pressable>
               <Text style={styles.quantityValue}>{quantity}</Text>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Aumentar cantidad"
                 disabled={quantity >= maxQuantity}
                 onPress={() => setQuantity((value) => Math.min(maxQuantity, value + 1))}
-                style={[styles.quantityButton, quantity >= maxQuantity && styles.quantityButtonDisabled]}
-              ><Text style={styles.quantityButtonText}>+</Text></Pressable>
+                style={[
+                  styles.quantityButton,
+                  quantity >= maxQuantity && styles.quantityButtonDisabled,
+                ]}
+              >
+                <Text style={styles.quantityButtonText}>+</Text>
+              </Pressable>
               <Text style={styles.stockText}>Máximo 5 por solicitud</Text>
             </View>
           ) : null}
@@ -314,25 +392,41 @@ export function RequestServiceScreen() {
         </View>
       )}
 
-      {error ? <ErrorState title="No se envió la solicitud" description={error} onRetry={submit} /> : null}
+      {error ? (
+        <ErrorState title="No se envió la solicitud" description={error} onRetry={submit} />
+      ) : null}
       {serviceLoadError ? (
-        <ErrorState title="No se pudieron cargar los servicios" description={serviceLoadError} onRetry={loadServices} />
+        <ErrorState
+          title="No se pudieron cargar los servicios"
+          description={serviceLoadError}
+          onRetry={loadServices}
+        />
       ) : null}
       {housekeepingServiceLoadError ? (
-        <ErrorState title="No se pudieron cargar las opciones de limpieza" description={housekeepingServiceLoadError} onRetry={loadHousekeepingServices} />
+        <ErrorState
+          title="No se pudieron cargar las opciones de limpieza"
+          description={housekeepingServiceLoadError}
+          onRetry={loadHousekeepingServices}
+        />
       ) : null}
       {itemsLoadError ? (
-        <ErrorState title="No se pudieron cargar los artículos" description={itemsLoadError} onRetry={loadItems} />
+        <ErrorState
+          title="No se pudieron cargar los artículos"
+          description={itemsLoadError}
+          onRetry={loadItems}
+        />
       ) : null}
       <Button
         label="Enviar solicitud"
         onPress={submit}
         loading={saving}
-        disabled={isConcierge
-          ? !selectedService || loadingServices
-          : housekeepingMode === 'items'
-            ? !selectedItem || loadingItems
-            : !selectedHousekeepingService || loadingHousekeepingServices}
+        disabled={
+          isConcierge
+            ? !selectedService || loadingServices
+            : housekeepingMode === 'items'
+              ? !selectedItem || loadingItems
+              : !selectedHousekeepingService || loadingHousekeepingServices
+        }
       />
     </ScrollView>
   );
@@ -345,17 +439,47 @@ const styles = StyleSheet.create({
   subtitle: { ...typography.body, color: colors.text.secondary },
   options: { gap: spacing.sm },
   label: { ...typography.caption, color: colors.text.secondary },
-  segmented: { flexDirection: 'row', padding: 4, gap: 4, backgroundColor: colors.sand[100], borderRadius: radius.sm },
+  segmented: {
+    flexDirection: 'row',
+    padding: 4,
+    gap: 4,
+    backgroundColor: colors.sand[100],
+    borderRadius: radius.sm,
+  },
   timeOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  timeOption: { minHeight: 40, justifyContent: 'center', paddingHorizontal: spacing.sm, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.sand[300], backgroundColor: colors.white },
+  timeOption: {
+    minHeight: 40,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.sand[300],
+    backgroundColor: colors.white,
+  },
   timeOptionSelected: { borderColor: colors.brand[600], backgroundColor: colors.sand[100] },
   timeOptionText: { ...typography.caption, color: colors.text.secondary },
   timeOptionTextSelected: { color: colors.text.primary, fontWeight: '700' },
-  segment: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xs, borderRadius: radius.sm },
+  segment: {
+    flex: 1,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xs,
+    borderRadius: radius.sm,
+  },
   segmentSelected: { backgroundColor: colors.white },
   segmentText: { ...typography.caption, color: colors.text.secondary, textAlign: 'center' },
   segmentTextSelected: { color: colors.text.primary, fontWeight: '700' },
-  option: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderWidth: 1, borderColor: colors.sand[300], borderRadius: radius.sm, backgroundColor: colors.white },
+  option: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.sand[300],
+    borderRadius: radius.sm,
+    backgroundColor: colors.white,
+  },
   optionSelected: { borderColor: colors.brand[600] },
   optionUnavailable: { opacity: 0.55 },
   optionCopy: { flex: 1, gap: spacing.xs },
@@ -364,8 +488,22 @@ const styles = StyleSheet.create({
   radioSelected: { borderWidth: 6, borderColor: colors.brand[600] },
   stockText: { ...typography.caption, color: colors.text.secondary },
   quantityRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
-  quantityButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.sand[300], borderRadius: radius.sm, backgroundColor: colors.white },
+  quantityButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.sand[300],
+    borderRadius: radius.sm,
+    backgroundColor: colors.white,
+  },
   quantityButtonDisabled: { opacity: 0.45 },
   quantityButtonText: { ...typography.bodyLarge, color: colors.text.primary },
-  quantityValue: { ...typography.bodyLarge, minWidth: 24, textAlign: 'center', color: colors.text.primary },
+  quantityValue: {
+    ...typography.bodyLarge,
+    minWidth: 24,
+    textAlign: 'center',
+    color: colors.text.primary,
+  },
 });

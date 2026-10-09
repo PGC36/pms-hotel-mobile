@@ -13,8 +13,18 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
 const DEMO_ACCOUNTS = [
   { label: 'Limpieza', email: 'limpieza@aurora.test', password: 'limpieza', type: 'staff' },
-  { label: 'Room Service', email: 'roomservice@aurora.test', password: 'roomservice', type: 'staff' },
-  { label: 'Conserjería', email: 'conserjeria@aurora.test', password: 'conserjeria', type: 'staff' },
+  {
+    label: 'Room Service',
+    email: 'roomservice@aurora.test',
+    password: 'roomservice',
+    type: 'staff',
+  },
+  {
+    label: 'Conserjería',
+    email: 'conserjeria@aurora.test',
+    password: 'conserjeria',
+    type: 'staff',
+  },
   { label: 'Ana Morales', email: 'ana.demo@aurora.test', password: 'huesped1', type: 'guest' },
   { label: 'Carlos Reyes', email: 'carlos.demo@aurora.test', password: 'huesped2', type: 'guest' },
 ] as const;
@@ -64,10 +74,7 @@ export function LoginScreen({ navigation }: Props) {
   }
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.container}
-      keyboardShouldPersistTaps="handled"
-    >
+    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <View style={styles.header}>
         {/* Misma marca visible que la web: AURORA · HOTEL & RESORT. */}
         <Text style={styles.title} accessibilityLabel="Aurora Hotel & Resort">
@@ -144,7 +151,6 @@ export function LoginScreen({ navigation }: Props) {
     </ScrollView>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {

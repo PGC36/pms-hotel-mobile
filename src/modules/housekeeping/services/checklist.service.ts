@@ -1,6 +1,9 @@
 import { apiClient } from '@/shared/services/api-client';
 
-import type { HousekeepingChecklistDTO, HousekeepingChecklistTemplateDTO } from '../dtos/checklist.dto';
+import type {
+  HousekeepingChecklistDTO,
+  HousekeepingChecklistTemplateDTO,
+} from '../dtos/checklist.dto';
 import { mapChecklistDTOToModel, selectTurnoverChecklist } from '../mappers/checklist.mapper';
 import type { HousekeepingChecklistModel } from '../models/checklist.model';
 import { callHousekeepingApi } from './housekeeping.service';

@@ -1,41 +1,162 @@
+# Validación de la app móvil (equivalente en Jenkins: Jenkinsfile). Ver docs/CI-CD.md.
+#
+# - PR hacia develop/main y push a main: formato, TypeScript, lint, pruebas con cobertura,
+#   build de validación (expo export, sin credenciales) y SonarQube + Quality Gate.
+# - mobile-eas-build.yml lo reutiliza (workflow_call) antes de generar builds de EAS.
+#
+# SonarQube: SonarQube Cloud (SONAR_HOST_URL=https://sonarcloud.io + SONAR_ORGANIZATION) o un
+# servidor self-hosted (sin SONAR_ORGANIZATION). Si faltan SONAR_TOKEN/SONAR_HOST_URL, o el servidor
+# no responde UP desde el runner, el análisis se reporta como OMITIDO (nunca como aprobado) y el
+# resto del pipeline decide el resultado.
 name: Mobile CI
 
 on:
   pull_request:
     branches: [develop, main]
   push:
-    branches: [develop, main]
+    branches: [main]
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
 
 concurrency:
-  group: mobile-ci-${{ github.event.pull_request.number || github.ref }}
+  group: mobile-ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   validate:
-    name: Tests, types, and lint
+    name: Formato, tipos, lint, pruebas, build y SonarQube
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    timeout-minutes: 30
 
-      - name: Set up Node.js
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
+      SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }} # solo SonarQube Cloud
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # SonarQube necesita el historial para blame / código nuevo
+
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20
           cache: npm
 
-      - name: Install dependencies
+      - name: Instalar dependencias (npm ci)
         run: npm ci
 
-      - name: Run tests
-        run: npm test
+      - name: Formato (Prettier)
+        id: format
+        run: npm run format:check
 
-      - name: Check TypeScript
-        run: npx tsc --noEmit
+      - name: TypeScript
+        id: typecheck
+        run: npm run typecheck
 
-      - name: Run lint
+      - name: Lint (ESLint)
+        id: lint
         run: npm run lint
+
+      - name: Pruebas + cobertura (c8 → coverage/lcov.info)
+        id: test
+        run: npm run test:coverage
+
+      - name: Publicar reporte de cobertura
+        if: always() && steps.test.outcome != 'skipped'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Build de validación (expo export android/ios/web)
+        id: build
+        run: npm run build:validate
+
+      - name: Publicar bundle de validación
+        if: steps.build.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: expo-export
+          path: dist/
+          retention-days: 7
+
+      - name: Verificar disponibilidad de SonarQube
+        id: sonar-check
+        run: |
+          if [ -z "$SONAR_TOKEN" ] || [ -z "$SONAR_HOST_URL" ]; then
+            echo "::notice title=SonarQube omitido::SONAR_TOKEN o SONAR_HOST_URL no están configurados. El análisis no se ejecutó; no equivale a un Quality Gate aprobado."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "reason=SONAR_TOKEN o SONAR_HOST_URL no configurados" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if curl -fsS --max-time 20 "${SONAR_HOST_URL%/}/api/system/status" | grep -q '"status":"UP"'; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning title=SonarQube omitido::${SONAR_HOST_URL} no responde UP desde el runner. El análisis no se ejecutó; no equivale a un Quality Gate aprobado."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "reason=el servidor no responde UP desde el runner" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Análisis SonarQube + Quality Gate
+        id: sonar
+        if: steps.sonar-check.outputs.enabled == 'true'
+        run: |
+          npm run sonar -- \
+            -Dsonar.host.url="$SONAR_HOST_URL" \
+            -Dsonar.token="$SONAR_TOKEN" \
+            ${SONAR_PROJECT_KEY:+-Dsonar.projectKey="$SONAR_PROJECT_KEY"} \
+            ${SONAR_ORGANIZATION:+-Dsonar.organization="$SONAR_ORGANIZATION"} \
+            -Dsonar.qualitygate.wait=true \
+            -Dsonar.qualitygate.timeout=300
+
+      - name: Resumen
+        if: always()
+        env:
+          FORMAT: ${{ steps.format.outcome }}
+          TYPECHECK: ${{ steps.typecheck.outcome }}
+          LINT: ${{ steps.lint.outcome }}
+          TEST: ${{ steps.test.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+          SONAR_ENABLED: ${{ steps.sonar-check.outputs.enabled }}
+          SONAR_REASON: ${{ steps.sonar-check.outputs.reason }}
+          SONAR: ${{ steps.sonar.outcome }}
+        run: |
+          icon() {
+            case "$1" in
+              success) echo "✅ OK" ;;
+              failure) echo "❌ Falló" ;;
+              *) echo "⏭️ No se ejecutó (falló un paso previo)" ;;
+            esac
+          }
+          if [ "$SONAR_ENABLED" = "true" ]; then
+            case "$SONAR" in
+              success) sonar_result="✅ Quality Gate aprobado" ;;
+              failure) sonar_result="❌ Quality Gate rechazado o error de análisis (ver log y SonarQube)" ;;
+              *) sonar_result="⏭️ No se ejecutó (falló un paso previo)" ;;
+            esac
+          elif [ -n "$SONAR_REASON" ]; then
+            sonar_result="⚠️ OMITIDO — ${SONAR_REASON}. No es un Quality Gate aprobado."
+          else
+            sonar_result="⏭️ No se ejecutó (falló un paso previo)"
+          fi
+          {
+            echo "## Mobile CI"
+            echo ""
+            echo "| Etapa | Resultado |"
+            echo "| --- | --- |"
+            echo "| Formato | $(icon "$FORMAT") |"
+            echo "| TypeScript | $(icon "$TYPECHECK") |"
+            echo "| Lint | $(icon "$LINT") |"
+            echo "| Pruebas + cobertura | $(icon "$TEST") |"
+            echo "| Build de validación | $(icon "$BUILD") |"
+            echo "| SonarQube | ${sonar_result} |"
+          } >> "$GITHUB_STEP_SUMMARY"

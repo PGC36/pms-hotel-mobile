@@ -45,8 +45,8 @@ export function AmenitiesListScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      load();
-    }, [load])
+      void load();
+    }, [load]),
   );
 
   if (isLoading && !isRefreshing && amenities.length === 0) {
@@ -72,7 +72,9 @@ export function AmenitiesListScreen() {
           />
         }
         renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => navigation.navigate('AmenityDetail', { amenityId: item.id })}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('AmenityDetail', { amenityId: item.id })}
+          >
             <Card style={styles.card}>
               <View style={styles.cardHeader}>
                 <Text style={styles.titleText}>{item.name}</Text>
@@ -82,7 +84,9 @@ export function AmenitiesListScreen() {
                   <Badge label="Cerrado" variant="neutral" />
                 )}
               </View>
-              <Text style={styles.categoryText}>{item.category.toUpperCase()} • {item.location}</Text>
+              <Text style={styles.categoryText}>
+                {item.category.toUpperCase()} • {item.location}
+              </Text>
               <Text style={styles.scheduleText}>Horario: {item.scheduleLabel}</Text>
             </Card>
           </TouchableOpacity>

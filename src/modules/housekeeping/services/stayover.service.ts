@@ -16,7 +16,10 @@ export async function getStayoverById(id: string): Promise<StayoverModel | null>
   return (await getStayovers()).find((request) => request.id === id) ?? null;
 }
 
-export async function advanceStayover(id: string, action: 'start' | 'complete'): Promise<StayoverModel> {
+export async function advanceStayover(
+  id: string,
+  action: 'start' | 'complete',
+): Promise<StayoverModel> {
   const data = await callHousekeepingApi(() =>
     apiClient.post<StayoverDTO>(`${PATH}/${encodeURIComponent(id)}/${action}`),
   );

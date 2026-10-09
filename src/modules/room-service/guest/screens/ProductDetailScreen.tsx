@@ -27,11 +27,25 @@ export function ProductDetailScreen() {
         {product.description ? <Text style={styles.description}>{product.description}</Text> : null}
         <Text style={styles.price}>{formatMoney(product.priceCents, product.currency)}</Text>
         <View style={styles.quantity}>
-          <Button label="−" variant="secondary" onPress={() => setQuantity((current) => Math.max(1, current - 1))} />
+          <Button
+            label="−"
+            variant="secondary"
+            onPress={() => setQuantity((current) => Math.max(1, current - 1))}
+          />
           <Text style={styles.quantityText}>{quantity}</Text>
-          <Button label="+" variant="secondary" onPress={() => setQuantity((current) => current + 1)} />
+          <Button
+            label="+"
+            variant="secondary"
+            onPress={() => setQuantity((current) => current + 1)}
+          />
         </View>
-        <Button label="Agregar al carrito" onPress={() => { cart.add(product, quantity); navigation.navigate('Cart'); }} />
+        <Button
+          label="Agregar al carrito"
+          onPress={() => {
+            cart.add(product, quantity);
+            navigation.navigate('Cart');
+          }}
+        />
       </Card>
     </View>
   );
@@ -44,6 +58,11 @@ const styles = StyleSheet.create({
   title: { ...typography.h2 },
   description: { ...typography.body, color: colors.text.secondary },
   price: { ...typography.h2, color: colors.brand[600] },
-  quantity: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.md },
+  quantity: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+  },
   quantityText: { ...typography.bodyLarge, minWidth: 32, textAlign: 'center' },
 });

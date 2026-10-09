@@ -2,7 +2,12 @@ import { ApiConfigError } from '@/shared/services/api-config-error';
 import { HttpError } from '@/shared/services/http-client';
 import { apiClient } from '@/shared/services/api-client';
 
-import { mapGuestRequestStatus, type GuestRequestModel, type GuestRequestStatus, type GuestRequestType } from '../models/guest-request.model';
+import {
+  mapGuestRequestStatus,
+  type GuestRequestModel,
+  type GuestRequestStatus,
+  type GuestRequestType,
+} from '../models/guest-request.model';
 
 interface HousekeepingRequestDTO {
   id: string;
@@ -58,7 +63,10 @@ export interface HousekeepingServiceOption {
 }
 
 export class GuestRequestError extends Error {
-  constructor(message: string, public readonly status?: number) {
+  constructor(
+    message: string,
+    public readonly status?: number,
+  ) {
     super(message);
     this.name = 'GuestRequestError';
   }
@@ -73,7 +81,8 @@ function getErrorMessage(error: unknown): string {
     if (error.status === 409) return 'La solicitud cambió. Actualiza la lista e intenta de nuevo.';
     return 'El servidor no pudo completar la solicitud.';
   }
-  if (error instanceof TypeError) return 'No se pudo conectar. Revisa tu conexión e intenta de nuevo.';
+  if (error instanceof TypeError)
+    return 'No se pudo conectar. Revisa tu conexión e intenta de nuevo.';
   return 'Ocurrió un error inesperado. Intenta de nuevo.';
 }
 
@@ -153,9 +162,14 @@ export async function createGuestHousekeepingItemRequest(
   return mapHousekeeping(dto);
 }
 
-export async function getGuestRequest(id: string, type: GuestRequestType): Promise<GuestRequestModel> {
+export async function getGuestRequest(
+  id: string,
+  type: GuestRequestType,
+): Promise<GuestRequestModel> {
   if (type === 'housekeeping') {
-    const requests = await request(() => apiClient.get<HousekeepingRequestDTO[]>('/guest/housekeeping/requests'));
+    const requests = await request(() =>
+      apiClient.get<HousekeepingRequestDTO[]>('/guest/housekeeping/requests'),
+    );
     const found = requests.find((item) => item.id === id);
     if (!found) throw new GuestRequestError('La solicitud ya no está disponible.', 404);
     return mapHousekeeping(found);
@@ -172,10 +186,12 @@ export async function createGuestRequest(
   notes?: string,
   serviceId?: string,
 ): Promise<GuestRequestModel> {
-  const body = type === 'concierge' || (type === 'housekeeping' && serviceId)
-    ? { description: description.trim(), notes: notes?.trim() || null, serviceId }
-    : { description: description.trim() };
-  const path = type === 'housekeeping' ? '/guest/housekeeping/requests' : '/guest/concierge/requests';
+  const body =
+    type === 'concierge' || (type === 'housekeeping' && serviceId)
+      ? { description: description.trim(), notes: notes?.trim() || null, serviceId }
+      : { description: description.trim() };
+  const path =
+    type === 'housekeeping' ? '/guest/housekeeping/requests' : '/guest/concierge/requests';
   const dto = await request(() =>
     apiClient.post<HousekeepingRequestDTO | ConciergeRequestDTO>(path, body),
   );

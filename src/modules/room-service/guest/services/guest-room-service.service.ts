@@ -6,7 +6,10 @@ import { mapProductDTOToModel } from '@/modules/room-service/mappers/product.map
 import type { OrderModel } from '@/modules/room-service/models/order.model';
 import type { ProductModel } from '@/modules/room-service/models/product.model';
 import { ORDER_STATUS_TRANSITIONS } from '@/shared/constants/statuses';
-import { RoomServiceServiceError, callRoomServiceApi } from '@/modules/room-service/services/room-service-error';
+import {
+  RoomServiceServiceError,
+  callRoomServiceApi,
+} from '@/modules/room-service/services/room-service-error';
 
 export async function getGuestProducts(category?: ProductCategoryDTO): Promise<ProductModel[]> {
   const query = category ? `?category=${encodeURIComponent(category)}` : '';
@@ -17,7 +20,9 @@ export async function getGuestProducts(category?: ProductCategoryDTO): Promise<P
 }
 
 export async function getGuestOrders(): Promise<OrderModel[]> {
-  const orders = await callRoomServiceApi(() => apiClient.get<OrderDTO[]>('/guest/room-service/orders'));
+  const orders = await callRoomServiceApi(() =>
+    apiClient.get<OrderDTO[]>('/guest/room-service/orders'),
+  );
   return orders.map(mapOrderDTOToModel);
 }
 
@@ -32,7 +37,8 @@ export async function createGuestOrder(
   items: { productId: string; quantity: number }[],
   notes: string,
 ): Promise<OrderModel> {
-  if (!items.length) throw new RoomServiceServiceError('invalidInput', undefined, 'Agrega al menos un producto.');
+  if (!items.length)
+    throw new RoomServiceServiceError('invalidInput', undefined, 'Agrega al menos un producto.');
   const body = { items, notes: notes.trim() || null };
   const order = await callRoomServiceApi(() =>
     apiClient.post<OrderDTO>('/guest/room-service/orders', body),
@@ -49,9 +55,7 @@ export async function cancelGuestOrder(order: OrderModel): Promise<OrderModel> {
     throw new RoomServiceServiceError('invalidTransition');
   }
   const cancelled = await callRoomServiceApi(() =>
-    apiClient.post<OrderDTO>(
-      `/guest/room-service/orders/${encodeURIComponent(order.id)}/cancel`,
-    ),
+    apiClient.post<OrderDTO>(`/guest/room-service/orders/${encodeURIComponent(order.id)}/cancel`),
   );
   return mapOrderDTOToModel(cancelled);
 }

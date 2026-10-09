@@ -6,7 +6,10 @@ import { mapNotificationDTOToModel } from '../mappers/notification.mapper';
 import type { NotificationModel } from '../models/notification.model';
 
 export class NotificationServiceError extends Error {
-  constructor(message: string, public readonly status?: number) {
+  constructor(
+    message: string,
+    public readonly status?: number,
+  ) {
     super(message);
     this.name = 'NotificationServiceError';
   }
@@ -14,12 +17,26 @@ export class NotificationServiceError extends Error {
 
 function notificationError(error: unknown, fallback: string): NotificationServiceError {
   const status = error instanceof HttpError ? error.status : undefined;
-  if (error instanceof ApiConfigError) return new NotificationServiceError('La URL del servidor no está configurada.');
-  if (status === 401) return new NotificationServiceError('Tu sesión expiró. Inicia sesión nuevamente.', status);
-  if (status === 403) return new NotificationServiceError('No tienes permiso para acceder a estas notificaciones.', status);
-  if (status === 404) return new NotificationServiceError('La notificación ya no está disponible.', status);
-  if (status === 409) return new NotificationServiceError('Las notificaciones cambiaron. Actualiza e intenta de nuevo.', status);
-  if (error instanceof TypeError) return new NotificationServiceError('No se pudo conectar. Revisa tu conexión e intenta de nuevo.');
+  if (error instanceof ApiConfigError)
+    return new NotificationServiceError('La URL del servidor no está configurada.');
+  if (status === 401)
+    return new NotificationServiceError('Tu sesión expiró. Inicia sesión nuevamente.', status);
+  if (status === 403)
+    return new NotificationServiceError(
+      'No tienes permiso para acceder a estas notificaciones.',
+      status,
+    );
+  if (status === 404)
+    return new NotificationServiceError('La notificación ya no está disponible.', status);
+  if (status === 409)
+    return new NotificationServiceError(
+      'Las notificaciones cambiaron. Actualiza e intenta de nuevo.',
+      status,
+    );
+  if (error instanceof TypeError)
+    return new NotificationServiceError(
+      'No se pudo conectar. Revisa tu conexión e intenta de nuevo.',
+    );
   return new NotificationServiceError(fallback, status);
 }
 

@@ -14,21 +14,30 @@ const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItemModel[]>([]);
-  const value = useMemo<CartContextValue>(() => ({
-    items,
-    add: (product, quantity = 1) => setItems((current) => {
-      const existing = current.find((item) => item.product.id === product.id);
-      return existing
-        ? current.map((item) => item.product.id === product.id ? { ...item, quantity: item.quantity + quantity } : item)
-        : [...current, { product, quantity }];
+  const value = useMemo<CartContextValue>(
+    () => ({
+      items,
+      add: (product, quantity = 1) =>
+        setItems((current) => {
+          const existing = current.find((item) => item.product.id === product.id);
+          return existing
+            ? current.map((item) =>
+                item.product.id === product.id
+                  ? { ...item, quantity: item.quantity + quantity }
+                  : item,
+              )
+            : [...current, { product, quantity }];
+        }),
+      setQuantity: (productId, quantity) =>
+        setItems((current) =>
+          quantity <= 0
+            ? current.filter((item) => item.product.id !== productId)
+            : current.map((item) => (item.product.id === productId ? { ...item, quantity } : item)),
+        ),
+      clear: () => setItems([]),
     }),
-    setQuantity: (productId, quantity) => setItems((current) =>
-      quantity <= 0
-        ? current.filter((item) => item.product.id !== productId)
-        : current.map((item) => item.product.id === productId ? { ...item, quantity } : item),
-    ),
-    clear: () => setItems([]),
-  }), [items]);
+    [items],
+  );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

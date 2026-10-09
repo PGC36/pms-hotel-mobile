@@ -65,7 +65,7 @@ reservación asociada cuando así lo exige el backend.
 
 ## Requisitos
 
-- Node.js 18 o superior
+- Node.js 20 (>= 20.19.4)
 - npm
 - Expo Go en un dispositivo Android, o Android Studio con un emulador
 
@@ -83,13 +83,24 @@ Escanea el código QR con Expo Go, o presiona `a` para abrir el emulador Android
 ## Comandos
 
 ```bash
-npx expo start      # servidor de desarrollo
-npm run lint         # ESLint
-npm test             # pruebas de autenticación y contratos del portal de huésped
-npm run format       # Prettier — escribe cambios
-npm run format:check # Prettier — solo verifica
-npx tsc --noEmit     # chequeo de tipos
+npx expo start          # servidor de desarrollo
+npm run lint             # ESLint
+npm run typecheck        # chequeo de tipos (tsc --noEmit)
+npm test                 # pruebas de autenticación, checklist y operaciones de personal
+npm run test:coverage    # pruebas + cobertura (coverage/lcov.info)
+npm run format           # Prettier — escribe cambios
+npm run format:check     # Prettier — solo verifica
+npm run build:validate   # expo export android/ios/web (build de validación, sin credenciales)
+npm run ci               # todo lo anterior en el orden del pipeline
 ```
+
+## CI/CD
+
+GitHub Actions (`.github/workflows/`) y Jenkins (`Jenkinsfile`) validan cada PR (formato, tipos,
+lint, pruebas, build de validación y SonarQube Cloud con su Quality Gate). Además generan
+builds nativos con Expo EAS: preview para QA en cada merge a `develop` y release en tags `vX.Y.Z`,
+sin publicar en tiendas. Secretos, SonarQube, perfiles EAS y prerequisitos pendientes en
+[`docs/CI-CD.md`](./docs/CI-CD.md).
 
 ## QA con backend real
 

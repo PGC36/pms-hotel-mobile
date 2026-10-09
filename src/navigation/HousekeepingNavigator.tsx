@@ -19,9 +19,21 @@ const Tab = createBottomTabNavigator<HousekeepingTabParamList>();
 function RoomsStack() {
   return (
     <Stack.Navigator>
-      <Stack.Screen name="RoomList" component={RoomListScreen} options={{ title: 'Habitaciones' }} />
-      <Stack.Screen name="RoomDetail" component={RoomDetailScreen} options={{ title: 'Habitación' }} />
-      <Stack.Screen name="ReportIssue" component={ReportIssueScreen} options={{ title: 'Reportar desperfecto' }} />
+      <Stack.Screen
+        name="RoomList"
+        component={RoomListScreen}
+        options={{ title: 'Habitaciones' }}
+      />
+      <Stack.Screen
+        name="RoomDetail"
+        component={RoomDetailScreen}
+        options={{ title: 'Habitación' }}
+      />
+      <Stack.Screen
+        name="ReportIssue"
+        component={ReportIssueScreen}
+        options={{ title: 'Reportar desperfecto' }}
+      />
     </Stack.Navigator>
   );
 }
@@ -29,8 +41,16 @@ function RoomsStack() {
 function RequestsStack() {
   return (
     <Stack.Navigator>
-      <Stack.Screen name="Requests" component={HousekeepingRequestsScreen} options={{ title: 'Solicitudes' }} />
-      <Stack.Screen name="RequestDetail" component={HousekeepingRequestDetailScreen} options={{ title: 'Solicitud' }} />
+      <Stack.Screen
+        name="Requests"
+        component={HousekeepingRequestsScreen}
+        options={{ title: 'Solicitudes' }}
+      />
+      <Stack.Screen
+        name="RequestDetail"
+        component={HousekeepingRequestDetailScreen}
+        options={{ title: 'Solicitud' }}
+      />
     </Stack.Navigator>
   );
 }
@@ -38,7 +58,11 @@ function RequestsStack() {
 function HistoryStack() {
   return (
     <Stack.Navigator>
-      <Stack.Screen name="History" component={HousekeepingHistoryScreen} options={{ title: 'Historial' }} />
+      <Stack.Screen
+        name="History"
+        component={HousekeepingHistoryScreen}
+        options={{ title: 'Historial' }}
+      />
     </Stack.Navigator>
   );
 }
@@ -54,18 +78,36 @@ export function HousekeepingNavigator() {
         tabBarInactiveTintColor: colors.text.secondary,
       }}
     >
-      <Tab.Screen name="RoomsTab" component={RoomsStack} options={{
-        title: 'Limpieza',
-        tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="broom" color={color} size={size} />,
-      }} />
-      <Tab.Screen name="RequestsTab" component={RequestsStack} options={{
-        title: 'Solicitudes',
-        tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="clipboard-list-outline" color={color} size={size} />,
-      }} />
-      <Tab.Screen name="HistoryTab" component={HistoryStack} options={{
-        title: 'Historial',
-        tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="history" color={color} size={size} />,
-      }} />
+      <Tab.Screen
+        name="RoomsTab"
+        component={RoomsStack}
+        options={{
+          title: 'Limpieza',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="broom" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="RequestsTab"
+        component={RequestsStack}
+        options={{
+          title: 'Solicitudes',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="clipboard-list-outline" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="HistoryTab"
+        component={HistoryStack}
+        options={{
+          title: 'Historial',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="history" color={color} size={size} />
+          ),
+        }}
+      />
     </Tab.Navigator>
   );
 }

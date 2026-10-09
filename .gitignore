@@ -39,3 +39,15 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# coverage / analysis
+coverage/
+.scannerwork/
+
+# local Sonar / setup secrets
+.env
+
+# EAS build artifacts downloaded by CI (Jenkins/Actions)
+eas-artifacts/
+eas-build*.json
+artifact/

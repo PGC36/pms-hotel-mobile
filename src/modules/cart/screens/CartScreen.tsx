@@ -20,14 +20,20 @@ export function CartScreen() {
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const totalCents = cart.items.reduce((sum, item) => sum + item.product.priceCents * item.quantity, 0);
+  const totalCents = cart.items.reduce(
+    (sum, item) => sum + item.product.priceCents * item.quantity,
+    0,
+  );
   const currency = cart.items[0]?.product.currency ?? 'GTQ';
 
   const submit = async () => {
     setLoading(true);
     setError(null);
     try {
-      await createGuestOrder(cart.items.map(({ product, quantity }) => ({ productId: product.id, quantity })), notes);
+      await createGuestOrder(
+        cart.items.map(({ product, quantity }) => ({ productId: product.id, quantity })),
+        notes,
+      );
       cart.clear();
       navigation.replace('Orders');
     } catch (cause) {
@@ -43,29 +49,54 @@ export function CartScreen() {
         data={cart.items}
         keyExtractor={(item) => item.product.id}
         contentContainerStyle={styles.list}
-        ListEmptyComponent={<EmptyState title="Tu carrito está vacío" description="Agrega productos del menú para crear un pedido." />}
+        ListEmptyComponent={
+          <EmptyState
+            title="Tu carrito está vacío"
+            description="Agrega productos del menú para crear un pedido."
+          />
+        }
         renderItem={({ item }) => (
           <Card style={styles.item}>
             <View style={styles.itemInfo}>
               <Text style={styles.name}>{item.product.name}</Text>
-              <Text style={styles.price}>{formatMoney(item.product.priceCents * item.quantity, item.product.currency)}</Text>
+              <Text style={styles.price}>
+                {formatMoney(item.product.priceCents * item.quantity, item.product.currency)}
+              </Text>
             </View>
             <View style={styles.quantity}>
-              <Button label="−" variant="secondary" onPress={() => cart.setQuantity(item.product.id, item.quantity - 1)} />
+              <Button
+                label="−"
+                variant="secondary"
+                onPress={() => cart.setQuantity(item.product.id, item.quantity - 1)}
+              />
               <Text style={styles.count}>{item.quantity}</Text>
-              <Button label="+" variant="secondary" onPress={() => cart.setQuantity(item.product.id, item.quantity + 1)} />
+              <Button
+                label="+"
+                variant="secondary"
+                onPress={() => cart.setQuantity(item.product.id, item.quantity + 1)}
+              />
             </View>
           </Card>
         )}
-        ListFooterComponent={cart.items.length ? (
-          <View style={styles.footer}>
-            <Text style={styles.total}>Estimado: {formatMoney(totalCents, currency)}</Text>
-            <TextInput value={notes} onChangeText={setNotes} maxLength={1000} multiline placeholder="Notas para el equipo (opcional)" placeholderTextColor={colors.text.muted} style={styles.notes} />
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-            <Button label="Enviar pedido" onPress={submit} loading={loading} />
-            <Text style={styles.disclaimer}>El total final lo confirma el backend.</Text>
-          </View>
-        ) : null}
+        ListFooterComponent={
+          cart.items.length ? (
+            <View style={styles.footer}>
+              <Text style={styles.total}>Estimado: {formatMoney(totalCents, currency)}</Text>
+              <TextInput
+                value={notes}
+                onChangeText={setNotes}
+                maxLength={1000}
+                multiline
+                placeholder="Notas para el equipo (opcional)"
+                placeholderTextColor={colors.text.muted}
+                style={styles.notes}
+              />
+              {error ? <Text style={styles.error}>{error}</Text> : null}
+              <Button label="Enviar pedido" onPress={submit} loading={loading} />
+              <Text style={styles.disclaimer}>El total final lo confirma el backend.</Text>
+            </View>
+          ) : null
+        }
       />
     </View>
   );
@@ -74,7 +105,12 @@ export function CartScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.sand[50] },
   list: { padding: spacing.md, gap: spacing.sm, flexGrow: 1 },
-  item: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
   itemInfo: { flex: 1, gap: spacing.xs },
   name: { ...typography.bodyLarge, fontWeight: '600' },
   price: { ...typography.body, color: colors.text.secondary },
@@ -82,7 +118,17 @@ const styles = StyleSheet.create({
   count: { ...typography.body, minWidth: 24, textAlign: 'center' },
   footer: { gap: spacing.md, paddingTop: spacing.md },
   total: { ...typography.h2, color: colors.brand[600] },
-  notes: { ...typography.body, minHeight: 76, textAlignVertical: 'top', borderWidth: 1, borderColor: colors.sand[300], borderRadius: 6, backgroundColor: colors.white, padding: spacing.sm, color: colors.text.primary },
+  notes: {
+    ...typography.body,
+    minHeight: 76,
+    textAlignVertical: 'top',
+    borderWidth: 1,
+    borderColor: colors.sand[300],
+    borderRadius: 6,
+    backgroundColor: colors.white,
+    padding: spacing.sm,
+    color: colors.text.primary,
+  },
   error: { ...typography.caption, color: colors.state.danger },
   disclaimer: { ...typography.caption, color: colors.text.muted },
 });

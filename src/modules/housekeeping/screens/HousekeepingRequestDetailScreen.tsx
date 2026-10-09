@@ -81,11 +81,12 @@ export function HousekeepingRequestDetailScreen({ route }: Props) {
   const load = useCallback(async () => {
     try {
       const entry = await getHousekeepingEntryById(taskId);
-      const checklist = entry?.kind === 'stayover' &&
+      const checklist =
+        entry?.kind === 'stayover' &&
         !isArticleDelivery(entry.request.description) &&
         entry.request.status === 'inProgress'
-        ? await getOrCreateRequestChecklist(entry.request.roomId, entry.request.id)
-        : null;
+          ? await getOrCreateRequestChecklist(entry.request.roomId, entry.request.id)
+          : null;
       maintenanceRef.current = entry?.kind === 'maintenance' ? entry.request : null;
       dispatch({ type: 'LOADED', entry, checklist });
     } catch (error) {
@@ -274,7 +275,9 @@ export function HousekeepingRequestDetailScreen({ route }: Props) {
               ) : null}
             </>
           ) : (
-            <Text style={styles.body}>No se pudo preparar la checklist. Actualiza la solicitud.</Text>
+            <Text style={styles.body}>
+              No se pudo preparar la checklist. Actualiza la solicitud.
+            </Text>
           )}
         </Card>
       ) : null}
@@ -305,7 +308,10 @@ export function HousekeepingRequestDetailScreen({ route }: Props) {
         ) : (
           <Button
             label="Completar solicitud"
-            disabled={!isArticleDelivery(request.description) && (!checklist || checklist.status !== 'completed')}
+            disabled={
+              !isArticleDelivery(request.description) &&
+              (!checklist || checklist.status !== 'completed')
+            }
             onPress={() => setConfirmComplete(true)}
             fullWidth
           />
